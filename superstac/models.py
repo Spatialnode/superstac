@@ -1,45 +1,23 @@
-"""SuperSTAC Models."""
-
-from __future__ import annotations
-
-from typing import Optional
-from urllib.parse import urlparse
-
-import attr
-
-from superstac.enums import AuthType
+from dataclasses import dataclass, field, asdict
+from typing import Optional, List
 
 
-@attr.s(auto_attribs=True, kw_only=True)
+@dataclass
 class AuthInfo:
-    type: AuthType
-    token: Optional[str] | None = None
+    type: str
+    token: Optional[str] = None
     username: Optional[str] = None
-    password: Optional[str] | None = None
-    header_key: Optional[str] | None = None
+    password: Optional[str] = None
+    header_key: Optional[str] = None
 
 
-@attr.s(auto_attribs=True, kw_only=True)
+@dataclass
 class CatalogEntry:
-    """_summary_.
-
-    Raises:
-        ValueError: _description_
-
-    """
-
     name: str
-    url: str = attr.ib(validator=attr.validators.instance_of(str))
+    url: str
     auth: Optional[AuthInfo] = None
     is_available: bool = False
     latency_ms: Optional[float] = None
-    conforms_to: Optional[list[str]] = None
-    collections: Optional[list[str]] = None
-    extensions: Optional[list[str]] = None
-
-    @url.validator
-    def _validate_url(self, _, value) -> None:
-        result = urlparse(value)
-        if not result.scheme.startswith("http"):
-            msg = "Invalid URL: must start with http or https"
-            raise ValueError(msg)
+    conforms_to: Optional[List[str]] = field(default_factory=list)
+    collections: Optional[List[str]] = field(default_factory=list)
+    extensions: Optional[List[str]] = field(default_factory=list)
