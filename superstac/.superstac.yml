@@ -1,5 +1,9 @@
 catalogs:
   Earth Search:
     url: https://earth-search.aws.element84.com/v1
+    summary: 'Element 84 STAC catalog'
+    is_private: False 
   Planetary Computer:
     url: https://planetarycomputer.microsoft.com/api/stac/v1
+    summary: 'Microsoft Planetary Computer STAC catalog'
+    is_private: False 

@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.9"
-dependencies = []
+dependencies = [
+    "pystac-client==0.8.5",
+]
 
 [tool.uv]
 dev-dependencies = [
