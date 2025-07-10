@@ -4,6 +4,7 @@ from pathlib import Path
 import attr
 from typing import Any, Dict, Optional, Union
 
+from superstac._logging import logger
 from superstac.enums import CatalogOutputFormat
 from superstac.exceptions import (
     CatalogConfigFileNotFound,
@@ -16,6 +17,7 @@ import yaml
 
 @attr.s(auto_attribs=True)
 class CatalogManager:
+    logger.info("Initialized superstac")
     catalogs: Dict[str, CatalogEntry] = attr.Factory(dict)
 
     def register_catalog(
@@ -41,10 +43,19 @@ class CatalogManager:
         Returns:
             CatalogEntry: The registered STAC catalog.
         """
+        logger.info(f"Registering catalog: {name}")
+        logger.debug(
+            f"Params - url: {url}, is_private: {is_private}, summary: {summary}, auth: {auth}"
+        )
         if is_private and auth is None:
+            logger.error(
+                f"Private catalog '{name}' requires authentication but none was provided."
+            )
             raise InvalidCatalogSchemaError(
                 f"Authentication parameters is required for private catalogs. If this is a mistake, you can set 'is_private' to False or provide the {AuthInfo.__annotations__} parameters."
             )
+
+        logger.info(f"Catalog '{name}' registered successfully.")
         self.catalogs[name] = CatalogEntry(
             name=name,
             url=url,
@@ -65,56 +76,86 @@ class CatalogManager:
         Returns:
             list[CatalogEntry]: The list of all available STAC catalogs.
         """
+        logger.info("Retrieving available catalogs.")
         if isinstance(format, str):
             try:
                 format = CatalogOutputFormat(format.lower())
             except ValueError:
+                logger.error(f"Invalid output format: {format}")
                 raise ValueError(f"Invalid format: {format}")
 
-        return [
+        available = [
             c.as_dict() if format == CatalogOutputFormat.DICT else c.as_json()
             for c in self.catalogs.values()
             if c.is_available
         ]
 
+        logger.info(f"{len(available)} catalogs available in format '{format.value}'.")
+        return available
+
     def load_catalogs_from_config(
         self, file: Union[str, Path, None] = None
     ) -> Dict[str, CatalogEntry]:
+        """Load catalogs from configuration file.
+
+        Args:
+            file (Union[str, Path, None], optional): Path to the configuration file. Defaults to None.
+
+        Raises:
+            CatalogConfigFileNotFound: Raised when the catalog config file is not founds.
+            InvalidCatalogYAMLError: Raised when the yaml file is invalid.
+            InvalidCatalogSchemaError: Raised when there is a schema error in the provided config file.
+
+        Returns:
+            Dict[str, CatalogEntry]: The registered catalogs.
+        """
+        logger.info("Loading catalogs from configuration file.")
         if file is None:
             base_dir = Path(__file__).parent
             file = base_dir / ".superstac.yml"
 
         path = Path(file).expanduser().resolve()
+        logger.debug(f"Resolved config path: {path}")
 
         if not path.exists():
+            logger.error(f"Config file not found at path: {path}")
             raise CatalogConfigFileNotFound(f"Config file not found at {path}")
 
         try:
             with open(path, "r") as f:
                 data = yaml.safe_load(f) or {}
+            logger.info(f"Successfully loaded YAML config from: {path}")
         except yaml.YAMLError as e:
+            logger.exception("YAML parsing failed.")
             raise InvalidCatalogYAMLError(f"YAML parsing failed: {e}") from e
         except Exception as e:
+            logger.exception("Unexpected error while reading config.")
             raise InvalidCatalogYAMLError(
                 f"Unexpected error reading config: {e}"
             ) from e
 
         catalogs = data.get("catalogs")
         if not isinstance(catalogs, dict):
+            logger.error(
+                f"Missing or invalid 'catalogs' section in config file: {path}"
+            )
             raise InvalidCatalogSchemaError(
                 f"Missing or invalid 'catalogs' section in config file: {path}"
             )
 
-        # Register each catalog
+        logger.info(f"Found {len(catalogs)} catalogs to register.")
         for name, spec in catalogs.items():
-            self.register_catalog(
-                name=name,
-                url=spec.get("url"),
-                is_private=spec.get("is_private", False),
-                summary=spec.get("summary"),
-                auth=AuthInfo(**spec["auth"]) if "auth" in spec else None,
-            )
-
+            try:
+                self.register_catalog(
+                    name=name,
+                    url=spec.get("url"),
+                    is_private=spec.get("is_private", False),
+                    summary=spec.get("summary"),
+                    auth=AuthInfo(**spec["auth"]) if "auth" in spec else None,
+                )
+            except Exception as e:
+                logger.warning(f"Failed to register catalog '{name}': {e}")
+        logger.info("All catalogs loaded and registered.")
         return self.catalogs
 
 
