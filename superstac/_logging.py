@@ -4,7 +4,7 @@ import logging
 
 
 PACKAGE_NAME = "superstac"
-LOGGING_FORMAT = f"{PACKAGE_NAME}:%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+LOGGING_FORMAT = f"{PACKAGE_NAME}:%(asctime)s - %(module)s.%(funcName)s - %(levelname)s - %(message)s"
 
 logger = logging.getLogger(PACKAGE_NAME)
 
@@ -33,6 +33,12 @@ def add_file_logging(file_path=f"{PACKAGE_NAME}.log"):
         # Configure custom file log
         add_file_logging("my_log.log")
     """
+    for h in logger.handlers:
+        if (
+            isinstance(h, logging.FileHandler)
+            and getattr(h, "baseFilename", None) == file_path
+        ):
+            return
     file_handler = logging.FileHandler(file_path)
     file_formatter = logging.Formatter(LOGGING_FORMAT)
     file_handler.setFormatter(file_formatter)
@@ -54,5 +60,10 @@ def configure_logging(level=logging.WARNING):
         configure_logging(logging.INFO)
     """
     logger.setLevel(level)
+    if not any(isinstance(h, logging.StreamHandler) for h in logger.handlers):
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(level)
+        console_handler.setFormatter(logging.Formatter(LOGGING_FORMAT))
+        logger.addHandler(console_handler)
     for handler in logger.handlers:
         handler.setLevel(level)

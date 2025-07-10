@@ -4,7 +4,6 @@ from pathlib import Path
 import attr
 from typing import Any, Dict, Optional, Union
 
-from superstac._logging import logger
 from superstac.enums import CatalogOutputFormat
 from superstac.exceptions import (
     CatalogConfigFileNotFound,
@@ -14,11 +13,16 @@ from superstac.exceptions import (
 from superstac.models import CatalogEntry, AuthInfo
 import yaml
 
+from superstac._logging import logger
+
 
 @attr.s(auto_attribs=True)
 class CatalogManager:
-    logger.info("Initialized superstac")
+
     catalogs: Dict[str, CatalogEntry] = attr.Factory(dict)
+
+    def __attrs_post_init__(self):
+        logger.info("Initialized superstac")
 
     def register_catalog(
         self,
