@@ -98,12 +98,12 @@ class CatalogManager:
         return available
 
     def load_catalogs_from_config(
-        self, file: Union[str, Path, None] = None
+        self, config: Union[str, Path, None] = None
     ) -> Dict[str, CatalogEntry]:
         """Load catalogs from configuration file.
 
         Args:
-            file (Union[str, Path, None], optional): Path to the configuration file. Defaults to None.
+            config (Union[str, Path, None], optional): Path to the configuration file. Defaults to None.
 
         Raises:
             CatalogConfigFileNotFound: Raised when the catalog config file is not founds.
@@ -114,11 +114,12 @@ class CatalogManager:
             Dict[str, CatalogEntry]: The registered catalogs.
         """
         logger.info("Loading catalogs from configuration file.")
-        if file is None:
+        if config is None:
+            # todo. - make public and environment variable
             base_dir = Path(__file__).parent
-            file = base_dir / ".superstac.yml"
+            config = base_dir / ".superstac.yml"
 
-        path = Path(file).expanduser().resolve()
+        path = Path(config).expanduser().resolve()
         logger.debug(f"Resolved config path: {path}")
 
         if not path.exists():
@@ -161,14 +162,3 @@ class CatalogManager:
                 logger.warning(f"Failed to register catalog '{name}': {e}")
         logger.info("All catalogs loaded and registered.")
         return self.catalogs
-
-
-## TEST
-
-
-if __name__ == "__main__":
-    # cm = CatalogManager()
-    # cm.register_catalog(name="My Catalog", url="https://example.com/stac")
-    # print(cm.load_catalogs_from_config())
-    # print(cm.get_available_catalogs())
-    ...

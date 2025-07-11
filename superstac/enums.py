@@ -1,3 +1,5 @@
+"""SuperSTAC Enums"""
+
 from enum import Enum
 
 

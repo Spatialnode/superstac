@@ -1,3 +1,6 @@
+"""SuperSTAC Exceptions"""
+
+
 class InvalidCatalogSchemaError(Exception):
     """Raised when an invalid catalog schema is provided."""
 

@@ -25,6 +25,7 @@ catalogs:
       username: youruser
       password: yourpass
 ```
+# load from the environment variable - SUPERSTAC_CATALOG_CONFIG
 
 # Todo - auth configuration documentation.
 
