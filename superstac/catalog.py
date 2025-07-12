@@ -2,7 +2,9 @@
 
 from pathlib import Path
 import attr
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
+
+from pystac_client import Client
 
 from superstac.enums import CatalogOutputFormat
 from superstac.exceptions import (
@@ -29,7 +31,6 @@ class CatalogManager:
         name: str,
         url: str,
         is_private: Optional[bool] = False,
-        summary: Optional[str] = None,
         auth: Optional[AuthInfo] = None,
     ) -> CatalogEntry:
         """Register a single STAC catalog in state.
@@ -48,9 +49,7 @@ class CatalogManager:
             CatalogEntry: The registered STAC catalog.
         """
         logger.info(f"Registering catalog: {name}")
-        logger.debug(
-            f"Params - url: {url}, is_private: {is_private}, summary: {summary}, auth: {auth}"
-        )
+        logger.debug(f"Params - url: {url}, is_private: {is_private},  auth: {auth}")
         if is_private and auth is None:
             logger.error(
                 f"Private catalog '{name}' requires authentication but none was provided."
@@ -58,29 +57,52 @@ class CatalogManager:
             raise InvalidCatalogSchemaError(
                 f"Authentication parameters is required for private catalogs. If this is a mistake, you can set 'is_private' to False or provide the {AuthInfo.__annotations__} parameters."
             )
-
-        logger.info(f"Catalog '{name}' registered successfully.")
-        self.catalogs[name] = CatalogEntry(
+        client = None
+        try:
+            # todo - add auth parameters and config...
+            client = Client.open(url)
+            metadata = {
+                "client": client,
+                "catalog": client.get_root(),
+                "is_available": True,
+            }
+            logger.info(f"Catalog '{name}' is reachable and valid.")
+        except Exception as e:
+            logger.warning(f"Catalog '{name}' could not be reached or parsed: {e}")
+            metadata = {
+                "client": None,
+                "catalog": None,
+                "is_available": False,
+            }
+        entry = CatalogEntry(
             name=name,
             url=url,
-            summary=summary,
             is_private=is_private,
             auth=AuthInfo(**auth.__dict__) if auth and not is_private else None,
+            **metadata,
         )
-        return self.catalogs[name]
+        self.catalogs[name] = entry
+        logger.info(f"Catalog '{name}' registered successfully.")
+        return entry
 
-    def get_available_catalogs(
-        self, format: Union[str, CatalogOutputFormat] = CatalogOutputFormat.DICT
+    def get_catalogs(
+        self,
+        format: Union[str, CatalogOutputFormat] = CatalogOutputFormat.DICT,
+        available: bool = False,
     ) -> list[Union[dict[str, Any], str]]:
-        """Get the available STAC catalogs.
+        """Get the STAC catalogs.
+
+        Args:
+            format (Union[str, CatalogOutputFormat]): Output format, dict or json string.
+            available (bool): If True, return only available catalogs; else return all.
 
         Raises:
             ValueError: When an invalid format is provided.
 
         Returns:
-            list[CatalogEntry]: The list of all available STAC catalogs.
+            list[CatalogEntry]: List of catalogs in the requested format.
         """
-        logger.info("Retrieving available catalogs.")
+        logger.info(f"Retrieving {'available' if available else 'all'} catalogs.")
         if isinstance(format, str):
             try:
                 format = CatalogOutputFormat(format.lower())
@@ -88,14 +110,59 @@ class CatalogManager:
                 logger.error(f"Invalid output format: {format}")
                 raise ValueError(f"Invalid format: {format}")
 
-        available = [
+        catalogs = [
             c.as_dict() if format == CatalogOutputFormat.DICT else c.as_json()
             for c in self.catalogs.values()
-            if c.is_available
+            if (c.is_available if available else True)
         ]
 
-        logger.info(f"{len(available)} catalogs available in format '{format.value}'.")
-        return available
+        logger.info(f"{len(catalogs)} catalogs retrieved in format '{format.value}'.")
+        return catalogs
+
+    def get_all_collections(self, available: bool = False) -> Dict[str, List[str]]:
+        """
+        Returns a dictionary mapping catalog names to a list of collection IDs
+        available in each catalog.
+
+        Args:
+            available (bool): If True, only include catalogs that are available.
+
+        Returns:
+            Dict[str, List[str]]: Catalog name -> list of collection IDs
+        """
+        logger.info(f"Getting collections with available={available}")
+        collections = {}
+        for name, entry in self.catalogs.items():
+            if (entry.is_available if available else True) and entry.catalog:
+                logger.debug(
+                    f"Processing catalog '{name}' (available={entry.is_available})"
+                )
+                try:
+                    all_collections = entry.catalog.get_all_collections()
+                    if all_collections:
+                        collection_ids = []
+                        for c in all_collections:
+                            if hasattr(c, "id"):
+                                collection_ids.append(c.id)
+                            elif isinstance(c, dict) and "id" in c:
+                                collection_ids.append(c["id"])
+                            else:
+                                collection_ids.append(str(c))
+                        collections[name] = collection_ids
+                        logger.info(
+                            f"Found {len(collection_ids)} collections in catalog '{name}'"
+                        )
+                    else:
+                        logger.info(f"No collections found in catalog '{name}'")
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to get collections for catalog '{name}': {e}"
+                    )
+                    continue
+            else:
+                logger.debug(f"Skipping catalog '{name}' due to availability filter")
+        logger.info(f"Total catalogs with collections returned: {len(collections)}")
+        return collections
 
     def load_catalogs_from_config(
         self, config: Union[str, Path, None] = None
@@ -155,7 +222,6 @@ class CatalogManager:
                     name=name,
                     url=spec.get("url"),
                     is_private=spec.get("is_private", False),
-                    summary=spec.get("summary"),
                     auth=AuthInfo(**spec["auth"]) if "auth" in spec else None,
                 )
             except Exception as e:

@@ -1,35 +1,25 @@
 """SuperSTAC Catalog Registry"""
 
-from typing import Union
 from superstac.catalog import CatalogManager
 
 
-_catalog_registry = CatalogManager()
+_catalog_registry = None
 
 
 def get_catalog_registry() -> CatalogManager:
     """
     Returns the singleton CatalogManager instance.
     """
+    global _catalog_registry
+    if _catalog_registry is None:
+        _catalog_registry = CatalogManager()
     return _catalog_registry
 
 
-def register_catalog(*args, **kwargs):
+def clear_registry() -> None:
     """
-    Shortcut to register a catalog globally.
+    Reset the registry, mainly for testing.
     """
-    return _catalog_registry.register_catalog(*args, **kwargs)
-
-
-def load_catalogs_from_config(file: Union[str, None] = None):
-    """
-    Loads catalogs from YAML into the global registry.
-    """
-    return _catalog_registry.load_catalogs_from_config(file)
-
-
-def clear_registry():
-    """
-    Optional: Reset the registry, mainly for testing.
-    """
-    _catalog_registry.catalogs.clear()
+    if _catalog_registry:
+        _catalog_registry.catalogs.clear()
+    return None

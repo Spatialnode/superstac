@@ -1,7 +1,6 @@
 from superstac.catalog_registry import (
-    register_catalog,
     get_catalog_registry,
-    load_catalogs_from_config,
 )
+from superstac.search import federated_search, federated_search_async
 
-__all__ = ["register_catalog", "get_catalog_registry", "load_catalogs_from_config"]
+__all__ = ["get_catalog_registry", "federated_search", "federated_search_async"]

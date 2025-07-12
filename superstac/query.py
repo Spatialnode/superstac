@@ -1,23 +1,18 @@
 """SuperSTAC Query Manager"""
 
-from typing import List, Optional, Dict, Any
-from pystac_client import Client
+from typing import Any, List
 from pystac import Item
 from superstac._logging import logger
-from superstac.utils import BAND_MAP
+import asyncio
 
-
-# todo - support auth and headers for client.open() in query_catalog_with_pystac param.
-# test resolving band alias
+from superstac.models import CatalogEntry
 
 
 def query_catalog_with_pystac(
-    name: str,
-    url: str,
-    required_assets: Optional[List[str]] = None,
-    max_items: int = 100,
+    catalog: CatalogEntry,
+    collection: str,
     **search_kwargs: Any,
-) -> List[Dict[str, Any]]:
+) -> List[Item]:
     """
     Search a single catalog using pystac-client and normalize the assets.
 
@@ -32,55 +27,25 @@ def query_catalog_with_pystac(
         List of STAC items (as dicts), normalized with filtered assets and catalog_name.
     """
     try:
-        client = Client.open(url)
+        client = catalog.client
         logger.debug(f"Querying STAC with: {search_kwargs.items()}")
-        search = client.search(max_items=max_items, **search_kwargs)
+        search = client.search(collections=[collection], **search_kwargs)  # type: ignore
         items: List[Item] = list(search.items())
-
-        collection_id = None
-        collections = search_kwargs.get("collections")
-        if isinstance(collections, list) and collections:
-            collection_id = collections[0]
-        elif isinstance(collections, str):
-            collection_id = collections
-
-        band_map = BAND_MAP.get(collection_id, {})
-        normalized = []
-
-        for item in items:
-            item_assets = item.assets
-            normalized_assets = {}
-
-            for alias, actual in band_map.items():
-                if not required_assets or alias in required_assets:
-                    if actual in item_assets:
-                        normalized_assets[alias] = item_assets[actual].to_dict()
-
-            if normalized_assets:
-                item_dict = item.to_dict()
-                item_dict["assets"] = normalized_assets
-                item_dict["catalog_name"] = name
-                normalized.append(item_dict)
-
+        collection_id = collection
         logger.info(
-            f"[{name}] Returned {len(normalized)} items for collection '{collection_id}'"
+            f"[{catalog.name}] Returned {len(items)} items for collection '{collection_id}'"
         )
-        return normalized
+        return items
 
     except Exception as e:
-        logger.warning(f"[{name}] Catalog query failed: {e}")
+        logger.warning(f"[{catalog.name}] Catalog query failed: {e}")
         return []
 
 
-if __name__ == "__main__":
-    results = query_catalog_with_pystac(
-        name="aws",
-        url="https://earth-search.aws.element84.com/v1",
-        collections=["sentinel-2-l2a"],
-        bbox=[6.0, 49.0, 7.0, 50.0],
-        datetime="2024-01-01/2024-01-31",
-        query={"eo:cloud_cover": {"lt": 20}},
-        required_assets=["red", "nir"],
-        sortby=[{"field": "properties.datetime", "direction": "desc"}],
-    )
-    print(results)
+async def query_catalog_with_pystac_async_wrapper(*args, **kwargs) -> List[Item]:
+    """
+    Async wrapper for the synchronous `query_catalog_with_pystac` function,
+    offloading it to a thread to avoid blocking the event loop.
+    """
+    results = await asyncio.to_thread(query_catalog_with_pystac, *args, **kwargs)
+    return results
