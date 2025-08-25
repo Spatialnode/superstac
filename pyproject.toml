@@ -1,13 +1,14 @@
 [project]
 name = "superstac"
 version = "0.1.0"
-description = "Add your description here"
+description = "High-availability satellite imagery retrieval across multiple STAC catalogs."
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
     "pystac-client==0.8.5",
 ]
-
+license = { text = "MIT" }
+authors = [{ name = "Emmanuel Jolaiya", email = "emmanuel@spatialnode.net" }]
 [tool.uv]
 dev-dependencies = [
     "ruff",
