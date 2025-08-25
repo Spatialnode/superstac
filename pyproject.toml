@@ -1,7 +1,7 @@
 [project]
 name = "superstac"
 version = "0.1.0a2"
-description = "High-availability satellite imagery retrieval across multiple STAC catalogs."
+description = "SuperSTAC is a Python library for high-availability satellite imagery retrieval across multiple STAC catalogs."
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
