@@ -1,0 +1,24 @@
+[package]
+name = "superstac-engine"
+description = "Runtime for superstac: orchestrates federated STAC search, health monitoring, and capability introspection."
+keywords = ["stac", "geospatial", "federated", "satellite"]
+categories = ["science::geo"]
+readme = "../../README.md"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[dependencies]
+superstac-core = { path = "../core", version = "0.1.0" }
+superstac-search = { path = "../search", version = "0.1.0" }
+serde = { version = "1.0", features = ["derive"] }
+stac = "0.16"
+stac-io = "0.2"
+tokio = { version = "1", features = ["rt", "time", "macros"] }
+parking_lot = "0.12"
+reqwest = { version = "0.13", features = ["json"] }
+tracing = "0.1"

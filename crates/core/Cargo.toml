@@ -1,0 +1,20 @@
+[package]
+name = "superstac-core"
+description = "Domain models, storage trait, and shared utilities for superstac federated STAC search."
+keywords = ["stac", "geospatial", "satellite", "remote-sensing"]
+categories = ["science::geo"]
+readme = "../../README.md"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[dependencies]
+chrono = { version = "0.4.42", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "1.0"
+tracing = "0.1"
+url = { version = "2", features = ["serde"] }

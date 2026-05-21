@@ -1,0 +1,68 @@
+providers:
+  # A provider with catalog
+  - id: microsoft
+    name: Microsoft Planetary Computer
+    description: Microsoft's planetary-scale catalog
+    website_url: https://planetarycomputer.microsoft.com/
+    stac_version: "1.0.0"
+    logo_url: https://planetarycomputer.microsoft.com/logo.png
+
+  - id: element84
+    name: Element 84
+    description: Element 84 catalog
+    website_url: https://element84.com
+    stac_version: "1.0.0"
+    logo_url: https://element84.com/logo.png
+
+  # A provider without a catalog.
+  - id: google
+    name: Google Earth Engine
+    description: Google Earth Engine catalog
+    website_url: https://google.com
+    stac_version: "1.0.0"
+    logo_url: https://planetarycomputer.microsoft.com/logo.png
+    
+
+catalogs:
+  # No collection_aliases needed — Element84 already uses canonical names.
+  # Engine auto-discovers supported collections via /collections at startup.
+  - id: earth-search
+    provider: element84
+    title: Earth Search
+    url: https://earth-search.aws.element84.com/v1
+    description: STAC catalog for Earth Search
+
+  # No collection_aliases needed — Microsoft PC already uses canonical names.
+  - id: microsoft
+    title: Planetary Computer
+    provider: microsoft
+    url: https://planetarycomputer.microsoft.com/api/stac/v1
+    description: Microsoft Planetary Computer catalog
+    settings:
+      health_check_strategy: Hourly
+      healthy_status_code_range: [200, 299]
+
+  # Example: a catalog that needs aliases because it uses non-canonical names.
+  # Uncomment and adapt when adding a catalog like CDSE.
+  #
+  # - id: cdse
+  #   provider: copernicus
+  #   url: https://catalogue.dataspace.copernicus.eu/stac
+  #   collection_aliases:
+  #     sentinel-2-l2a: S2MSI2A   # canonical -> local
+  #     sentinel-1-grd: S1GRD
+  #   asset_aliases:
+  #     sentinel-2-l2a:
+  #       blue: B02
+  #       green: B03
+  #       red: B04
+  #       nir: B08
+
+settings:
+  health_check_strategy: "15m"
+  healthy_status_code_range: [200, 299]
+  auto_fix_duplicate_catalog_id: true
+  auto_fix_duplicate_provider_id: true
+  log_level: info
+  logging_enabled: true
+  search_healthy_catalogs_only: true 

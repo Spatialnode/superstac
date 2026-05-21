@@ -1,104 +1,164 @@
-# SuperSTAC 
+# superstac
 
-[![PyPI version](https://img.shields.io/pypi/v/superstac.svg)](https://pypi.org/project/superstac/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
 
-**SuperSTAC** is a Python library (with planned Rust backend) for **high-availability satellite imagery retrieval**.  
-Instead of relying on a single STAC endpoint (e.g., Sentinel from Element84), SuperSTAC can query **multiple catalogs** and automatically fall back to alternatives when a source is missing data or unavailable.
+Federated [STAC](https://stacspec.org/) search across multiple catalogs. Query
+Element84, Microsoft Planetary Computer, and others through one API.
+Items come back deduplicated, with their collection IDs and asset keys
+normalized to canonical names — regardless of which catalog they came from.
 
-⚠️ **Note:** This is an **early work-in-progress**. The initial release is to start iterating in public. Expect breaking changes.
+> **Status: alpha.** APIs and YAML schema are not yet stable. Pre-1.0; expect
+> breaking changes.
 
----
+## Why
 
-## Features (planned)
+A single STAC catalog isn't always enough:
 
-- Query multiple STAC catalogs through a single unified API.
-- Automatic fallback when a catalog has no data or is down.
-- Configurable authentication for protected catalogs.
-- Resolution & band matching across heterogeneous catalogs.
-- CLI and Python API for flexible workflows.
-- Optional LLM-assisted natural language queries.
-- Rust backend (planned)
+- The collection you need lives somewhere else.
+- The catalog you usually use is down or rate-limited.
+- Different providers index the same scenes under different names.
 
----
+superstac queries every catalog you've registered, drops the ones that don't
+serve the requested collection, runs the rest concurrently with retry and
+timeouts, then merges and dedupes the results.
 
-## Installation
+## Install
+
+There is no published binary yet. Build from source:
 
 ```bash
-pip install superstac
+git clone https://github.com/jeafreezy/superstac
+cd superstac
+cargo build --release
 ```
+
+The CLI binary lands at `target/release/superstac`.
+
+## Quickstart
+
+Drop a `superstac.yml` next to where you run the binary:
+
+```yaml
+catalogs:
+  - id: earth-search
+    url: https://earth-search.aws.element84.com/v1
+  - id: microsoft
+    url: https://planetarycomputer.microsoft.com/api/stac/v1
+```
+
+Then:
+
+```bash
+# what collections does each catalog serve?
+superstac collections
+
+# search across all of them
+superstac search -c sentinel-2-l2a -b 6.0,49.0,7.0,50.0 -d 2024-01-01/2024-01-31 -l 50
+
+# pipe to jq
+superstac --json search -c landsat-c2-l2 -l 10 | jq '.metadata'
+
+# inspect a single collection
+superstac collections microsoft sentinel-2-l2a
+```
+
+Run `superstac --help` for the full surface.
 
 ## Configuration
 
-SuperSTAC loads its catalog configuration from a YAML file, typically referenced via the environment variable `SUPERSTAC_CATALOG_CONFIG`.
+Only `id` and `url` are required per catalog. Common optional fields:
 
-Example `.superstac.yml`:
+```yaml
+catalogs:
+  - id: cdse
+    url: https://catalogue.dataspace.copernicus.eu/stac
+    # Only needed when the catalog uses non-canonical names.
+    collection_aliases:
+      sentinel-2-l2a: S2MSI2A
+    asset_aliases:
+      sentinel-2-l2a:
+        blue: B02
+        green: B03
+        red: B04
+
+settings:
+  health_check_strategy: "15m"
+  deduplicate_items: true
+  unify_response: true
+  max_concurrent_catalogs: 8
+  per_catalog_timeout_seconds: 30
+  max_retry_attempts: 2
+```
+
+The full schema and every setting is documented inline at
+[`crates/core/src/models/settings.rs`](./crates/core/src/models/settings.rs).
+
+## Library usage
+
+The CLI is a thin wrapper over [`superstac-engine`]. To embed in your own
+binary:
+
+```rust
+use superstac_config::init_from_yaml;
+use superstac_core::models::storage::Storage;
+use superstac_engine::SuperSTACEngine;
+use superstac_search::query::SearchQuery;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let db = init_from_yaml(Storage::Memory, "superstac.yml")?;
+    let engine = SuperSTACEngine::new(db);
+    engine.start().await?;
+
+    let response = engine
+        .search(SearchQuery {
+            collections: vec!["sentinel-2-l2a".to_string()],
+            limit: Some(20),
+            bbox: None,
+            datetime: None,
+            ids: None,
+            intersects: None,
+            sortby: None,
+        })
+        .await?;
+
+    println!("found {} items", response.metadata.total_items);
+    Ok(())
+}
+```
+
+## Crates
+
+| Crate | Purpose |
+|-------|---------|
+| [`superstac-core`](./crates/core) | domain models, errors, storage trait |
+| [`superstac-config`](./crates/config) | YAML config loading |
+| [`superstac-search`](./crates/search) | federated search logic |
+| [`superstac-engine`](./crates/engine) | runtime (health, introspection, search orchestration) |
+| [`superstac-cli`](./crates/cli) | the `superstac` binary |
+
+## Logs and debugging
+
+Logs flow through `tracing`. The default level comes from `settings.log_level`
+in your config; override at runtime:
 
 ```bash
-catalogs:
-  Element84 Sentinel:
-    url: https://earth-search.aws.element84.com/v0
-  Planet:
-    url: https://api.planet.com/stac/v1
-    auth:
-      type: basic
-      username: youruser
-      password: yourpass
-  Microsoft PC:
-    url: https://planetarycomputer.microsoft.com/api/stac/v1
-    auth:
-      type: bearer
-      token: "YOUR_MICROSOFT_PC_TOKEN"
-```
-See [superstac/.superstac.yml](superstac/.superstac.yml) for an example config file.
-
-
-## Usage (very early draft)
-
-```python
-  from superstac import get_catalog_registry, federated_search_async
-
-  cr = get_catalog_registry()
-  cr.load_catalogs_from_config()
-
-  print("\nRunning asynchronous federated_search_async...")
-  start_async = time.perf_counter()
-  results_async = asyncio.run(
-      federated_search_async(
-          registry=cr,
-          collections=["sentinel-2-l2a"],
-          bbox=[6.0, 49.0, 7.0, 50.0],
-          datetime="2024-01-01/2024-01-31",
-          query={"eo:cloud_cover": {"lt": 20}},
-          sortby=[{"field": "properties.datetime", "direction": "desc"}],
-      )
-  )
-  end_async = time.perf_counter()
-  print(
-      f"Asynchronous search found {len(results_async)} items in {end_async - start_async:.2f} seconds."
-  )
-
-  for x in results_async:
-      print(x.self_href)
+superstac -v search -c sentinel-2-l2a       # debug
+superstac -q search -c sentinel-2-l2a       # warn only
+RUST_LOG=superstac_search=debug superstac search -c sentinel-2-l2a
 ```
 
-Also see [main.py](./main.py).
+## Roadmap
 
-## Development Status / Roadmap
+Some things on the way:
 
-Planned enhancements:
- - Authentication configuration & documentation
- - Retry logic
- - Result modifiers
- - Catalog refresh & health checks
- - Latency tracking and fallback ranking
- - Band matching across heterogeneous catalogs
- - CLI tool
- - Example notebooks (illegal mining detection, disaster response, LLM-assisted search)
-
+- Authentication (per-catalog headers, OAuth, API keys)
+- SQLite + Postgres backends
+- Python bindings via PyO3
+- and many more.
 
 ## License
 
-MIT License. See [LICENSE](LICENSE).
+MIT. See [LICENSE](./LICENSE).
 
-Feedback, issues, and contributions are welcome! This package is at a very early stage, so opening issues for missing features or edge cases will directly shape the roadmap.
+Feedback and issues welcome — this is early. If you try it and you see any bug, feel free to open an issue!

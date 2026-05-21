@@ -1,0 +1,52 @@
+providers:
+  # A provider with catalog
+  - id: microsoft
+    name: Microsoft Planetary Computer
+    description: Microsoft's planetary-scale catalog
+    website_url: https://planetarycomputer.microsoft.com/
+    stac_version: "1.0.0"
+    logo_url: https://planetarycomputer.microsoft.com/logo.png
+
+  # A provider without a catalog.
+  - id: google
+    name: Google Earth Engine
+    description: Google Earth Engine catalog
+    website_url: https://google.com
+    stac_version: "1.0.0"
+    logo_url: https://planetarycomputer.microsoft.com/logo.png
+    
+
+catalogs:
+  # Fixture exercises both alias forms with realistic non-identity mappings,
+  # so test assertions verify the loader handles real rename rules.
+  - id: earth-search
+    provider: microsoft
+    title: Earth Search
+    url: https://earth-search.aws.element84.com/v1
+    description: STAC catalog for Earth Search
+    collection_aliases:
+      sentinel-2-l2a: S2MSI2A
+      sentinel-1-grd: S1GRD
+    asset_aliases:
+      sentinel-2-l2a:
+        blue: B02
+        green: B03
+        red: B04
+        nir: B08
+
+  # A catalog with settings and without provider
+  - id: microsoft
+    title: Planetary Computer
+    url: https://planetarycomputer.microsoft.com/api/stac/v1
+    description: Microsoft Planetary Computer catalog
+    settings:
+      health_check_strategy: Hourly
+      healthy_status_code_range: [200, 299]
+
+settings:
+  health_check_strategy: "15m"
+  healthy_status_code_range: [200, 299]
+  auto_fix_duplicate_catalog_id: true
+  auto_fix_duplicate_provider_id: true
+  log_level: info
+  logging_enabled: true

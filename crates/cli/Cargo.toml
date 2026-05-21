@@ -1,0 +1,30 @@
+[package]
+name = "superstac-cli"
+description = "Command-line interface for federated STAC search across multiple catalogs."
+keywords = ["stac", "geospatial", "cli", "search", "satellite"]
+categories = ["science::geo", "command-line-utilities"]
+readme = "../../README.md"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "superstac"
+path = "src/main.rs"
+
+[dependencies]
+superstac-core = { path = "../core", version = "0.1.0" }
+superstac-config = { path = "../config", version = "0.1.0" }
+superstac-search = { path = "../search", version = "0.1.0" }
+superstac-engine = { path = "../engine", version = "0.1.0" }
+clap = { version = "4", features = ["derive"] }
+serde = "1"
+serde_json = "1"
+stac = "0.16"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "ansi", "tracing-log"] }

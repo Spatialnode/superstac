@@ -1,0 +1,288 @@
+use parking_lot::Mutex;
+use reqwest::Client;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
+
+use std::collections::HashMap;
+
+use crate::{
+    capabilities,
+    discovery::{self, CollectionAvailability},
+    health::HealthManager,
+    types::SharedStorage,
+};
+use superstac_core::{
+    errors::SuperSTACError,
+    models::catalog::{Catalog, CatalogFilters},
+    storages::factory::StorageBackend,
+};
+use std::time::Duration;
+
+use superstac_search::{
+    executor::SearchExecutor,
+    options::{FederationOptions, RetryPolicy},
+    query::SearchQuery,
+    response::SearchResponse,
+};
+
+/// Runtime entry point. Wraps a storage backend, runs background health
+/// checks and `/collections` introspection, and exposes the federated search
+/// + discovery API.
+///
+/// Construct, call `start()`, then use `search()` / `list_collections()` /
+/// `describe_collection()`. `start()` is idempotent — `search()` will call
+/// it for you if needed.
+pub struct SuperSTACEngine {
+    storage: SharedStorage,
+    client: Client,
+    health_manager: Option<HealthManager>,
+    executor: SearchExecutor,
+    started: AtomicBool,
+}
+
+/// User-Agent attached to every outbound HTTP request. Set as a default
+/// header on the shared reqwest client at engine construction. When
+/// per-catalog headers are added later, this must be filtered out of any
+/// user-supplied set so it can't be overridden.
+const USER_AGENT: &str = concat!("superstac/", env!("CARGO_PKG_VERSION"));
+
+impl SuperSTACEngine {
+    /// Build an engine over the given storage. Construct the storage via
+    /// `superstac_config::init_from_yaml` or directly via
+    /// [`superstac_core::models::storage::Storage::init`].
+    pub fn new(storage: Box<dyn StorageBackend + Send + Sync>) -> Self {
+        let client = Client::builder()
+            .user_agent(USER_AGENT)
+            .build()
+            .expect("failed to build reqwest client");
+
+        Self {
+            storage: Arc::new(Mutex::new(storage)),
+            client: client.clone(),
+            health_manager: Some(HealthManager::new(client.clone())),
+            executor: SearchExecutor::new(client),
+            started: AtomicBool::new(false),
+        }
+    }
+
+    /// Run health checks against all catalogs, then introspect `/collections`
+    /// on the healthy ones. Idempotent — safe to call multiple times.
+    pub async fn start(&self) -> Result<(), SuperSTACError> {
+        if self.started.load(Ordering::Relaxed) {
+            return Ok(());
+        }
+
+        if let Some(manager) = &self.health_manager {
+            let catalogs = {
+                let storage = self.storage.lock();
+                storage.list_catalogs(None)?
+            };
+
+            manager.start(Arc::clone(&self.storage), catalogs).await?;
+        }
+
+        // Introspect each healthy catalog's /collections so we can do source
+        // selection at search time. Failures here are non-fatal — affected
+        // catalogs remain `supported_collections = None` (pass-through).
+        self.introspect_capabilities().await?;
+
+        self.started.store(true, Ordering::Relaxed);
+
+        let catalog_count = self.storage.lock().list_catalogs(None)?.len();
+        tracing::info!(catalogs = catalog_count, "engine ready");
+
+        Ok(())
+    }
+
+    /// Cancel background health-monitor tasks. Doesn't drop the storage.
+    pub async fn shutdown(&self) {
+        tracing::debug!("shutting down engine");
+
+        if let Some(manager) = &self.health_manager {
+            manager.stop_all().await;
+        }
+
+        self.started.store(false, Ordering::Relaxed);
+    }
+
+    async fn introspect_capabilities(&self) -> Result<(), SuperSTACError> {
+        let healthy_catalogs = {
+            let storage = self.storage.lock();
+            storage.list_catalogs(Some(CatalogFilters {
+                available: Some(true),
+                ..CatalogFilters::default()
+            }))?
+        };
+
+        for catalog in healthy_catalogs {
+            match capabilities::fetch_supported_collections(&self.client, &catalog).await {
+                Ok(set) => {
+                    tracing::debug!(
+                        catalog = %catalog.id,
+                        collections = set.len(),
+                        "introspected /collections"
+                    );
+                    let mut storage = self.storage.lock();
+                    if let Err(e) =
+                        storage.update_supported_collections(&catalog.id, Some(set))
+                    {
+                        tracing::warn!(
+                            catalog = %catalog.id,
+                            error = %e,
+                            "failed to persist /collections result"
+                        );
+                    }
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        catalog = %catalog.id,
+                        error = %e,
+                        "/collections introspection failed; catalog will pass-through"
+                    );
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// `start()` if we haven't already. Called automatically by `search()`
+    /// and the discovery methods.
+    pub async fn ensure_started(&self) -> Result<(), SuperSTACError> {
+        if !self.started.load(Ordering::Relaxed) {
+            self.start().await?;
+        }
+
+        Ok(())
+    }
+
+    /// Federated search. Applies source selection (filter catalogs that
+    /// can't possibly serve the requested collections), then fans out.
+    pub async fn search(&self, query: SearchQuery) -> Result<SearchResponse, SuperSTACError> {
+        self.ensure_started().await?;
+
+        let (candidate_catalogs, options) = {
+            let storage = self.storage.lock();
+            let settings = storage.get_settings();
+
+            let catalogs = if let Some(true) = settings.search_healthy_catalogs_only {
+                storage.list_catalogs(Some(CatalogFilters {
+                    available: Some(true),
+                    ..CatalogFilters::default()
+                }))?
+            } else {
+                storage.list_catalogs(None)?
+            };
+
+            let options = FederationOptions {
+                deduplicate: settings.deduplicate_items.unwrap_or(true),
+                unify_response: settings.unify_response.unwrap_or(true),
+                max_concurrent: settings.max_concurrent_catalogs.unwrap_or(8),
+                per_catalog_timeout: Duration::from_secs(
+                    settings.per_catalog_timeout_seconds.unwrap_or(30),
+                ),
+                retry: RetryPolicy {
+                    max_attempts: settings.max_retry_attempts.unwrap_or(2),
+                    initial_backoff: Duration::from_millis(
+                        settings.retry_initial_backoff_ms.unwrap_or(100),
+                    ),
+                    max_backoff: Duration::from_millis(
+                        settings.retry_max_backoff_ms.unwrap_or(2000),
+                    ),
+                },
+                max_items_per_catalog: settings.max_items_per_catalog.unwrap_or(1000),
+            };
+
+            (catalogs, options)
+        };
+
+        // Compute unsupported collections against the full candidate set
+        // before source-selection filtering.
+        let unsupported =
+            discovery::unsupported_collections(&candidate_catalogs, &query.collections);
+
+        // Source selection: drop catalogs whose introspected collection set
+        // doesn't overlap the requested collections. Catalogs with no
+        // introspection data pass through.
+        let catalogs: Vec<Catalog> = candidate_catalogs
+            .into_iter()
+            .filter(|c| c.supports_any_of(&query.collections))
+            .collect();
+
+        let mut response = self
+            .executor
+            .federated_search(catalogs, query, options)
+            .await?;
+        response.metadata.unsupported_collections = unsupported;
+
+        Ok(response)
+    }
+
+    /// Aggregated view: every collection ID known across healthy catalogs,
+    /// with the catalogs that serve each.
+    pub async fn list_collections(&self) -> Result<Vec<CollectionAvailability>, SuperSTACError> {
+        self.ensure_started().await?;
+        let catalogs = {
+            let storage = self.storage.lock();
+            storage.list_catalogs(None)?
+        };
+        Ok(discovery::aggregate_collections(&catalogs))
+    }
+
+    /// IDs of every catalog whose introspected `/collections` includes
+    /// `collection_id`. Catalogs not yet introspected are excluded.
+    pub async fn catalogs_supporting(
+        &self,
+        collection_id: &str,
+    ) -> Result<Vec<String>, SuperSTACError> {
+        self.ensure_started().await?;
+        let catalogs = {
+            let storage = self.storage.lock();
+            storage.list_catalogs(None)?
+        };
+        Ok(discovery::catalogs_supporting(&catalogs, collection_id))
+    }
+
+    /// Per-catalog inventory: catalog ID -> sorted canonical collection IDs.
+    /// Catalogs without introspection data are omitted.
+    pub async fn collections_by_catalog(
+        &self,
+    ) -> Result<HashMap<String, Vec<String>>, SuperSTACError> {
+        self.ensure_started().await?;
+        let catalogs = {
+            let storage = self.storage.lock();
+            storage.list_catalogs(None)?
+        };
+        Ok(discovery::collections_by_catalog(&catalogs))
+    }
+
+    /// Fetch full collection metadata from a specific catalog. The
+    /// `collection_id` is interpreted as canonical and resolved to the
+    /// catalog's local name via `collection_aliases`. Returns `None` if the
+    /// catalog returns 404 for the collection.
+    pub async fn describe_collection(
+        &self,
+        catalog_id: &str,
+        collection_id: &str,
+    ) -> Result<Option<stac::Collection>, SuperSTACError> {
+        self.ensure_started().await?;
+
+        let catalog = {
+            let storage = self.storage.lock();
+            storage.get_catalog(catalog_id)?.clone()
+        };
+
+        let local_id = catalog.resolve_collection(collection_id).to_string();
+
+        let stac_client =
+            stac_io::api::Client::with_client(self.client.clone(), &catalog.url)
+                .map_err(|e| SuperSTACError::SearchFailed(format!("stac client init: {}", e)))?;
+
+        stac_client
+            .collection(&local_id)
+            .await
+            .map_err(|e| SuperSTACError::SearchFailed(format!("fetch collection: {}", e)))
+    }
+}
