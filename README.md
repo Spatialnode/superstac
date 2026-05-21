@@ -1,6 +1,8 @@
 # superstac
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
+[![crates.io](https://img.shields.io/crates/v/superstac-search.svg)](https://crates.io/crates/superstac-search)
+[![docs.rs](https://docs.rs/superstac-core/badge.svg)](https://docs.rs/superstac-search)
 
 Federated [STAC](https://stacspec.org/) search across multiple catalogs. Query
 Element84, Microsoft Planetary Computer, and others through one API.
@@ -24,16 +26,25 @@ timeouts, then merges and dedupes the results.
 
 ## Install
 
-There is no published binary yet. Build from source:
+### Rust library
+
+Add the crates you need:
+
+```bash
+cargo add superstac-core
+cargo add superstac-search
+cargo add superstac-engine
+cargo add superstac-cli
+cargo add superstac-config
+```
+
+### From source
 
 ```bash
 git clone https://github.com/spatialnode/superstac
 cd superstac
 cargo build --release
 ```
-
-The CLI binary lands at `target/release/superstac`.
-
 ## Quickstart
 
 Drop a `superstac.yml` next to where you run the binary:
@@ -131,11 +142,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 | Crate | Purpose |
 |-------|---------|
-| [`superstac-core`](./crates/core) | domain models, errors, storage trait |
-| [`superstac-config`](./crates/config) | YAML config loading |
-| [`superstac-search`](./crates/search) | federated search logic |
-| [`superstac-engine`](./crates/engine) | runtime (health, introspection, search orchestration) |
-| [`superstac-cli`](./crates/cli) | the `superstac` binary |
+| [`superstac-core`](https://crates.io/crates/superstac-core) | domain models, errors, storage trait |
+| [`superstac-config`](https://crates.io/crates/superstac-config) | YAML config loading |
+| [`superstac-search`](https://crates.io/crates/superstac-search) | federated search logic |
+| [`superstac-engine`](https://crates.io/crates/superstac-engine) | runtime (health, introspection, search orchestration) |
+| [`superstac-cli`](https://crates.io/crates/superstac-cli) | the `superstac` binary |
 
 ## Logs and debugging
 
