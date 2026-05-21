@@ -1,7 +1,0 @@
-catalogs:
-  Earth Search:
-    url: https://earth-search.aws.element84.com/v1
-    is_private: False 
-  Planetary Computer:
-    url: https://planetarycomputer.microsoft.com/api/stac/v1
-    is_private: False 

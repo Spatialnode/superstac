@@ -1,0 +1,19 @@
+[package]
+name = "superstac-config"
+description = "YAML config loading for superstac federated STAC search."
+keywords = ["stac", "geospatial", "config"]
+categories = ["science::geo", "config"]
+readme = "../../README.md"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[dependencies]
+superstac-core = { path = "../core", version = "0.1.0" }
+serde = { version = "1.0", features = ["derive"] }
+serde-saphyr = "0.0.26"
+tracing = "0.1"

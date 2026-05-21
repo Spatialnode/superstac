@@ -1,0 +1,25 @@
+# cargo-release configuration. See https://github.com/crate-ci/cargo-release.
+#
+# Run `cargo release --help` for available levels (patch, minor, major, rc, ...).
+# Use `--execute` to actually run; without it cargo-release does a dry run.
+
+# All workspace members share one version. Bumping any crate bumps all.
+shared-version = true
+
+# One commit + one push for the whole workspace bump.
+consolidate-commits = true
+consolidate-pushes = true
+
+# Tag format and message.
+tag-name = "v{{version}}"
+tag-message = "release {{version}}"
+pre-release-commit-message = "chore: release {{version}}"
+
+# Only release from main.
+allow-branch = ["main"]
+
+# Don't sign by default; flip on later if you want.
+sign-tag = false
+sign-commit = false
+
+# Bump pre-release ids will look like 0.1.0-alpha.1, etc. Fine defaults.
