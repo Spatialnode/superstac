@@ -27,7 +27,7 @@ timeouts, then merges and dedupes the results.
 There is no published binary yet. Build from source:
 
 ```bash
-git clone https://github.com/jeafreezy/superstac
+git clone https://github.com/spatialnode/superstac
 cd superstac
 cargo build --release
 ```
@@ -71,7 +71,7 @@ Only `id` and `url` are required per catalog. Common optional fields:
 ```yaml
 catalogs:
   - id: cdse
-    url: https://catalogue.dataspace.copernicus.eu/stac
+    url: catalog-url
     # Only needed when the catalog uses non-canonical names.
     collection_aliases:
       sentinel-2-l2a: S2MSI2A
