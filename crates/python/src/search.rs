@@ -89,7 +89,7 @@ impl PySearch {
 
     fn __repr__(&self) -> String {
         format!(
-            "Search(items={}, catalogs={}, failed={})",
+            "SuperSTACSearch(items={}, catalogs={}, failed={})",
             self.response.items.len(),
             self.response.metadata.catalogs_queried,
             self.response.metadata.catalogs_failed,

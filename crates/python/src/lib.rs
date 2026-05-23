@@ -21,7 +21,7 @@ mod runtime;
 mod async_client;
 mod sync_client;
 
-const VERSION: &str = env!("CARGO_PKG_VERSION");
+const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 
 #[pymodule]
