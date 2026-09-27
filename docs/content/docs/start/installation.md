@@ -41,7 +41,7 @@ cargo add superstac-core superstac-config superstac-search superstac-engine
 cargo add tokio --features macros,rt-multi-thread
 ```
 
-These docs describe the working tree's 0.1 API. For unreleased changes, use path dependencies to a local checkout instead of assuming that a registry release has the same API. See the [Rust guide](/docs/rust/overview/).
+These docs target SuperSTAC 0.2. See the [Rust guide](/docs/rust/overview/).
 
 ## Command-line tool
 

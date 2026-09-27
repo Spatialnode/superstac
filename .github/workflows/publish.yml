@@ -1,23 +1,62 @@
-# name: Publish to PyPI
+name: Publish packages
 
-# on:
-#   push:
-#     tags:
-#       - "v*.*.*"   
+on:
+  release:
+    types: [published]
 
-# jobs:
-#   build:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - uses: actions/checkout@v4
+permissions:
+  contents: read
 
-#       - name: Install uv
-#         run: curl -LsSf https://astral.sh/uv/install.sh | sh
+concurrency:
+  group: publish-packages
+  cancel-in-progress: false
 
-#       - name: Build package
-#         run: uv build
+jobs:
+  checks:
+    uses: ./.github/workflows/CI.yml
 
-#       - name: Publish to PyPI
-#         uses: pypa/gh-action-pypi-publish@release/v1
-#         with:
-#           password: ${{ secrets.PYPI_API_TOKEN }}
+  crates:
+    needs: checks
+    runs-on: ubuntu-latest
+    environment: crates-io
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: '1.88.0'
+      - name: Publish Rust crates in dependency order
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          test -n "$CARGO_REGISTRY_TOKEN" || { echo 'Set CARGO_REGISTRY_TOKEN in Actions secrets'; exit 1; }
+          python scripts/check-release-version.py
+          python scripts/publish-crates.py
+
+  pypi:
+    needs: [checks, crates]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/superstac
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-sdist
+          path: dist
+      - name: Publish Python distributions
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # Omit the secret to use PyPI Trusted Publishing; existing API tokens also work.
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          skip-existing: true
+          attestations: false

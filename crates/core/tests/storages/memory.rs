@@ -1073,7 +1073,7 @@ fn memory_store_returns_matched_providers_when_filtered() {
                 Some("A different STAC Provider".to_string()),
                
                 Some("https://test.com".to_string()),
-                Some("A test version".to_string()),
+                Some("https://test.com/logo.png".to_string()),
                 None,
             )
             .expect("Provider should be created"),

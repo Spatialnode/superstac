@@ -4,8 +4,10 @@ __version__: str
 
 
 class Search:
+    def __iter__(self) -> Iterator[dict[str, Any]]: ...
+    def to_geojson(self) -> dict[str, Any]: ...
     def matched(self) -> int: ...
-    def items(self) -> Iterator[dict[str, Any]]: ...
+    def items(self) -> list[dict[str, Any]]: ...
     def item_collection_as_dict(self) -> dict[str, Any]: ...
     @property
     def metadata(self) -> dict[str, Any]: ...
@@ -16,6 +18,9 @@ class Client:
         self,
         config: dict[str, Any] | None = None,
         *,
+        catalogs: list[dict[str, Any]] | None = None,
+        providers: list[dict[str, Any]] | None = None,
+        settings: dict[str, Any] | None = None,
         storage: str = "memory",
     ) -> None: ...
     @classmethod
@@ -75,6 +80,9 @@ class AsyncClient:
         self,
         config: dict[str, Any] | None = None,
         *,
+        catalogs: list[dict[str, Any]] | None = None,
+        providers: list[dict[str, Any]] | None = None,
+        settings: dict[str, Any] | None = None,
         storage: str = "memory",
     ) -> None: ...
     @classmethod

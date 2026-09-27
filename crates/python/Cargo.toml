@@ -3,7 +3,7 @@ name = "superstac-python"
 description = "Python bindings for SuperSTAC via PyO3."
 keywords = ["stac", "geospatial", "federated", "satellite", "python"]
 categories = ["science::geo"]
-readme = "../../README.md"
+readme = "README.md"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -19,10 +19,10 @@ name = "_superstac"
 crate-type = ["cdylib"]
 
 [dependencies]
-superstac-core = { path = "../core", version = "0.1.0" }
-superstac-config = { path = "../config", version = "0.1.0" }
-superstac-engine = { path = "../engine", version = "0.1.0" }
-superstac-search = { path = "../search", version = "0.1.0" }
+superstac-core = { path = "../core", version = "0.2.0" }
+superstac-config = { path = "../config", version = "0.2.0" }
+superstac-engine = { path = "../engine", version = "0.2.0" }
+superstac-search = { path = "../search", version = "0.2.0" }
 pyo3 = { version = "0.26", features = ["extension-module", "abi3-py39"] }
 pyo3-async-runtimes = { version = "0.26", features = ["tokio-runtime"] }
 pythonize = "0.26"

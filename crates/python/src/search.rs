@@ -84,7 +84,7 @@ impl PySearch {
     }
 
     fn __iter__<'py>(&mut self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        Ok(self.ensure_items(py)?.into_any())
+        self.ensure_items(py)?.call_method0("__iter__")
     }
 
     fn __repr__(&self) -> String {

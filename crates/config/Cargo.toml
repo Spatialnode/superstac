@@ -14,7 +14,7 @@ documentation.workspace = true
 authors.workspace = true
 
 [dependencies]
-superstac-core = { path = "../core", version = "0.1.0" }
+superstac-core = { path = "../core", version = "0.2.0" }
 serde = { version = "1.0", features = ["derive"] }
 serde-saphyr = "0.0.26"
 tracing = "0.1"

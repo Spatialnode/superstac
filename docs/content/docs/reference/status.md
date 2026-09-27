@@ -3,7 +3,7 @@ title: Status and limitations
 description: What the current alpha supports and what is still being built.
 ---
 
-SuperSTAC is a pre-1.0, MIT-licensed project. This documentation describes the current repository API; there may be differences from published artifacts. APIs and YAML shapes may change.
+SuperSTAC is a pre-1.0, MIT-licensed project. This documentation targets version 0.2.0. APIs and YAML shapes may change.
 
 ## Available
 
