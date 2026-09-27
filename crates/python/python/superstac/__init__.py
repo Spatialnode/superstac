@@ -1,4 +1,4 @@
-"""High performance federated STAC search."""
+"""Many catalogs. One search. Search across STAC catalogs with Python."""
 
 from ._superstac import (
     AsyncClient,

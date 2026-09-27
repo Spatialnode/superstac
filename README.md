@@ -1,19 +1,23 @@
 # SuperSTAC
 
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/spatialnode/superstac/blob/main/LICENSE)
 [![crates.io](https://img.shields.io/crates/v/superstac-search.svg)](https://crates.io/crates/superstac-search)
-[![docs.rs](https://docs.rs/superstac-core/badge.svg)](https://docs.rs/superstac-search)
+[![Documentation](https://img.shields.io/badge/docs-SuperSTAC-blue)](https://spatialnode.com/superstac)
+[![docs.rs](https://docs.rs/superstac-search/badge.svg)](https://docs.rs/superstac-search)
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/superstac-logo-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="docs/assets/superstac-logo.svg">
-    <img src="docs/assets/superstac-logo.svg" alt="SuperSTAC logo" width="480">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/spatialnode/superstac/main/docs/assets/superstac-logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/spatialnode/superstac/main/docs/assets/superstac-logo.svg">
+    <img src="https://raw.githubusercontent.com/spatialnode/superstac/main/docs/assets/superstac-logo.svg" alt="SuperSTAC logo" width="480">
   </picture>
 </p>
 
-Federated [STAC](https://stacspec.org/) search across multiple catalogs. Query
-Element84, Microsoft Planetary Computer, and others through one API.
+**Many catalogs. One search.**
+
+Search across [STAC](https://stacspec.org/) catalogs through one interface, with Python, Rust, or the command line.
+
+Query Element84, Microsoft Planetary Computer, and others through one API.
 Items come back deduplicated, with their collection IDs and asset keys
 normalized to canonical names — regardless of which catalog they came from.
 
@@ -31,6 +35,18 @@ A single STAC catalog isn't always enough:
 SuperSTAC queries every catalog you've registered, drops the ones that don't
 serve the requested collection, runs the rest concurrently with retry and
 timeouts, then merges and dedupes the results.
+
+## Documentation
+
+Read the [SuperSTAC documentation](https://spatialnode.com/superstac) for installation, tutorials, and API guides.
+
+- [Quickstart](https://spatialnode.com/superstac/docs/start/quickstart)
+- [Python guide](https://spatialnode.com/superstac/docs/python/overview)
+- [Rust guide](https://spatialnode.com/superstac/docs/rust/overview)
+- [Command-line guide](https://spatialnode.com/superstac/docs/cli/overview)
+- [Configuration reference](https://spatialnode.com/superstac/docs/reference/configuration)
+
+Try the [Python quickstart notebook](https://spatialnode.com/superstac/docs/python/notebook) for a two-catalog search, footprint map, and GeoJSON export in Colab or Jupyter.
 
 ## Install
 
@@ -110,7 +126,7 @@ settings:
 ```
 
 The full schema and every setting is documented inline at
-[`crates/core/src/models/settings.rs`](./crates/core/src/models/settings.rs).
+[`crates/core/src/models/settings.rs`](https://github.com/spatialnode/superstac/blob/main/crates/core/src/models/settings.rs).
 
 ## Library usage
 
@@ -177,6 +193,6 @@ Some things on the way:
 
 ## License
 
-MIT. See [LICENSE](./LICENSE).
+MIT. See [LICENSE](https://github.com/spatialnode/superstac/blob/main/LICENSE).
 
 Feedback and issues welcome — this is early. If you try it and you see any bug, feel free to open an issue!

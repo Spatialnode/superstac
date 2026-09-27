@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "superstac"
-description = "High performance federated STAC search."
+description = "Many catalogs. One search. Search across STAC catalogs with Python."
 readme = "README.md"
 license = "MIT"
 authors = [{ name = "Emmanuel Jolaiya", email = "emmanuel@spatialnode.com" }]
@@ -25,7 +25,8 @@ dependencies = [
 
 
 [project.urls]
-Homepage = "https://github.com/spatialnode/superstac"
+Homepage = "https://spatialnode.com/superstac"
+Documentation = "https://spatialnode.com/superstac"
 Repository = "https://github.com/spatialnode/superstac"
 
 [tool.maturin]

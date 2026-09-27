@@ -2,19 +2,34 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/superstac-logo-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/superstac-logo.svg">
-    <img src="../../docs/assets/superstac-logo.svg" alt="SuperSTAC logo" width="480">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/spatialnode/superstac/main/docs/assets/superstac-logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/spatialnode/superstac/main/docs/assets/superstac-logo.svg">
+    <img src="https://raw.githubusercontent.com/spatialnode/superstac/main/docs/assets/superstac-logo.svg" alt="SuperSTAC logo" width="480">
   </picture>
 </p>
 
-Python bindings for [superstac](https://github.com/spatialnode/superstac) —
-federated STAC search across multiple catalogs.
+**Many catalogs. One search.**
+
+Search across STAC catalogs through one interface, with Python, Rust, or the command line.
+
+This package provides the Python bindings for [SuperSTAC](https://github.com/spatialnode/superstac).
 
 > **Status: alpha.** APIs are not yet stable. Pre-1.0; expect breaking changes.
 
 `superstac` ships a sync `Client` (drop-in for `pystac_client.Client` in most
 code) and an `AsyncClient` for asyncio users.
+
+## Documentation
+
+Read the [SuperSTAC documentation](https://spatialnode.com/superstac) for installation, tutorials, and API guides.
+
+- [Quickstart](https://spatialnode.com/superstac/docs/start/quickstart)
+- [Python guide](https://spatialnode.com/superstac/docs/python/overview)
+- [Rust guide](https://spatialnode.com/superstac/docs/rust/overview)
+- [Command-line guide](https://spatialnode.com/superstac/docs/cli/overview)
+- [Configuration reference](https://spatialnode.com/superstac/docs/reference/configuration)
+
+Try the [Python quickstart notebook](https://spatialnode.com/superstac/docs/python/notebook) for a two-catalog search, footprint map, and GeoJSON export in Colab or Jupyter.
 
 ## Install
 
