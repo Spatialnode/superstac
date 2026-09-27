@@ -1,6 +1,8 @@
 use serde::Deserialize;
 use stac::{Bbox, Geometry};
 
+use crate::options::SearchOptions;
+
 /// A federated STAC search request. Mirrors the STAC API search params:
 /// the engine translates this per-catalog before dispatch.
 ///
@@ -17,3 +19,9 @@ pub struct SearchQuery {
     pub sortby: Option<Vec<String>>,
 }
 
+
+// TODO - Integrate it into the engine.
+pub struct SearchRequest {
+    pub query: SearchQuery,
+    pub options: SearchOptions,
+}

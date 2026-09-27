@@ -1,6 +1,6 @@
 [package]
 name = "superstac-core"
-description = "Domain models, storage trait, and shared utilities for superstac federated STAC search."
+description = "Domain models, storage trait, and shared utilities for SuperSTAC federated STAC search."
 keywords = ["stac", "geospatial", "satellite", "remote-sensing"]
 categories = ["science::geo"]
 readme = "../../README.md"
@@ -10,6 +10,7 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
+documentation.workspace = true
 authors.workspace = true
 
 [dependencies]

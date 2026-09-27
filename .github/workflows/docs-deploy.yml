@@ -1,0 +1,111 @@
+name: Deploy docs
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git tag or commit to deploy (must contain the docs site)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# Serialize image publication and webhook calls. Coolify completes the rollout asynchronously.
+# Configure its Docker Image application to pull ghcr.io/<owner>/<repo>-docs:production.
+concurrency:
+  group: docs-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: docs-production
+      url: https://spatialnode.com/superstac
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.ref }}
+          persist-credentials: false
+
+      - name: Check deployment configuration
+        env:
+          COOLIFY_DEPLOY_WEBHOOK: ${{ secrets.COOLIFY_DEPLOY_WEBHOOK }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          : "${COOLIFY_DEPLOY_WEBHOOK:?Set the COOLIFY_DEPLOY_WEBHOOK Actions secret}"
+          : "${COOLIFY_TOKEN:?Set the COOLIFY_TOKEN Actions secret}"
+
+      - name: Name the image
+        id: image
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}-docs"
+          revision="$(git rev-parse HEAD)"
+          tag="sha-${revision}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "name=$image" >> "$GITHUB_OUTPUT"
+          echo "ref=$image:$tag" >> "$GITHUB_OUTPUT"
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build and type-check
+        env:
+          IMAGE: ${{ steps.image.outputs.ref }}
+          REVISION: ${{ steps.image.outputs.revision }}
+        run: |
+          docker build --platform linux/amd64 \
+            --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
+            --label "org.opencontainers.image.revision=$REVISION" \
+            --tag "$IMAGE" docs
+
+      - name: Test the built container
+        env:
+          IMAGE: ${{ steps.image.outputs.ref }}
+        run: |
+          docker run --detach --name docs-test --publish 127.0.0.1:3000:3000 "$IMAGE"
+          trap 'docker logs docs-test; docker rm --force docs-test' EXIT
+          ready=false
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:3000/superstac > /dev/null; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ready" != true ]; then
+            echo 'Documentation container did not become ready' >&2
+            exit 1
+          fi
+          node docs/scripts/check-links.mjs
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish tested image
+        env:
+          IMAGE: ${{ steps.image.outputs.ref }}
+          PRODUCTION_IMAGE: ${{ steps.image.outputs.name }}:production
+        run: |
+          docker push "$IMAGE"
+          docker tag "$IMAGE" "$PRODUCTION_IMAGE"
+          docker push "$PRODUCTION_IMAGE"
+          echo "Published image: \`$IMAGE\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Request Coolify deployment
+        env:
+          COOLIFY_DEPLOY_WEBHOOK: ${{ secrets.COOLIFY_DEPLOY_WEBHOOK }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: bash docs/scripts/deploy-coolify.sh
+

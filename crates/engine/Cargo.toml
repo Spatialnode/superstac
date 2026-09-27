@@ -1,6 +1,6 @@
 [package]
 name = "superstac-engine"
-description = "Runtime for superstac: orchestrates federated STAC search, health monitoring, and capability introspection."
+description = "Runtime for SuperSTAC: orchestrates federated STAC search, health monitoring, and capability introspection."
 keywords = ["stac", "geospatial", "federated", "satellite"]
 categories = ["science::geo"]
 readme = "../../README.md"
@@ -10,6 +10,7 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
+documentation.workspace = true
 authors.workspace = true
 
 [dependencies]

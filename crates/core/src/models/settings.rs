@@ -10,8 +10,7 @@ pub enum LogLevel {
     Debug,
 }
 
-/// Workspace-wide settings. Loaded from YAML (`settings:` block) or built
-/// from [`Settings::default`]. Field-level docs cover each knob.
+/// SuperSTAC global settings. 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Settings {
     pub health_check_strategy: HealthCheckFrequencyStrategy,
@@ -45,6 +44,8 @@ pub struct Settings {
     /// Hard cap on items returned per catalog (prevents runaway pagination).
     /// Defaults to 1000.
     pub max_items_per_catalog: Option<usize>,
+    /// Whether to spawn the background health monitor task. Defaults to true.
+    pub enable_background_health_monitor: Option<bool>,
 }
 
 impl Default for Settings {
@@ -65,6 +66,7 @@ impl Default for Settings {
             retry_initial_backoff_ms: Some(100),
             retry_max_backoff_ms: Some(2000),
             max_items_per_catalog: Some(1000),
+            enable_background_health_monitor: Some(true),
         }
     }
 }
@@ -87,6 +89,7 @@ pub struct SettingsUpdate {
     pub retry_initial_backoff_ms: Option<u64>,
     pub retry_max_backoff_ms: Option<u64>,
     pub max_items_per_catalog: Option<usize>,
+    pub enable_background_health_monitor: Option<bool>,
 }
 
 impl TryFrom<Settings> for SettingsUpdate {
@@ -108,6 +111,7 @@ impl TryFrom<Settings> for SettingsUpdate {
             retry_initial_backoff_ms: value.retry_initial_backoff_ms,
             retry_max_backoff_ms: value.retry_max_backoff_ms,
             max_items_per_catalog: value.max_items_per_catalog,
+            enable_background_health_monitor: value.enable_background_health_monitor,
         })
     }
 }

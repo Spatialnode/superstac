@@ -4,14 +4,12 @@ providers:
     name: Microsoft Planetary Computer
     description: Microsoft's planetary-scale catalog
     website_url: https://planetarycomputer.microsoft.com/
-    stac_version: "1.0.0"
     logo_url: https://planetarycomputer.microsoft.com/logo.png
 
   - id: element84
     name: Element 84
     description: Element 84 catalog
     website_url: https://element84.com
-    stac_version: "1.0.0"
     logo_url: https://element84.com/logo.png
 
   # A provider without a catalog.
@@ -19,7 +17,6 @@ providers:
     name: Google Earth Engine
     description: Google Earth Engine catalog
     website_url: https://google.com
-    stac_version: "1.0.0"
     logo_url: https://planetarycomputer.microsoft.com/logo.png
     
 
@@ -41,6 +38,7 @@ catalogs:
     settings:
       health_check_strategy: Hourly
       healthy_status_code_range: [200, 299]
+        enable_background_health_monitor: false
 
   # Example: a catalog that needs aliases because it uses non-canonical names.
   # Uncomment and adapt when adding a catalog like CDSE.
@@ -66,3 +64,4 @@ settings:
   log_level: info
   logging_enabled: true
   search_healthy_catalogs_only: true 
+  enable_background_health_monitor: true

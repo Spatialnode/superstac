@@ -1,0 +1,13 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "index",
+    "start",
+    "concepts",
+    "guides",
+    "python",
+    "rust",
+    "cli",
+    "reference"
+  ]
+}

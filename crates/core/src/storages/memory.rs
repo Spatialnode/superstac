@@ -211,7 +211,7 @@ impl StorageBackend for MemoryStorage {
             update.website_url,
             update.logo_url,
             update.description,
-            update.stac_version,
+            // update.stac_version,
             update.catalog_ids,
         )?;
 
@@ -273,7 +273,7 @@ impl StorageBackend for MemoryStorage {
             let name_filter = filters.name.as_ref();
             let description_filter = filters.description.as_ref();
             let catalog_id_filter = filters.catalog_id.as_ref();
-            let stac_version_filter = filters.stac_version.as_ref();
+            // let stac_version_filter = filters.stac_version.as_ref();
             let created_after_filter = filters.created_after.as_ref();
             let created_before_filter = filters.created_before.as_ref();
             let updated_after_filter = filters.updated_after.as_ref();
@@ -306,18 +306,18 @@ impl StorageBackend for MemoryStorage {
                     None => true,
                 };
 
-                let stac_version_match = match stac_version_filter {
-                    Some(stac_version_filter_ref) => provider
-                        .stac_version
-                        .as_ref()
-                        .map(|stac_version_ref| {
-                            stac_version_ref
-                                .to_lowercase()
-                                .contains(stac_version_filter_ref.to_lowercase().as_str())
-                        })
-                        .unwrap_or(false),
-                    None => true,
-                };
+                // let stac_version_match = match stac_version_filter {
+                //     Some(stac_version_filter_ref) => provider
+                //         .stac_version
+                //         .as_ref()
+                //         .map(|stac_version_ref| {
+                //             stac_version_ref
+                //                 .to_lowercase()
+                //                 .contains(stac_version_filter_ref.to_lowercase().as_str())
+                //         })
+                //         .unwrap_or(false),
+                //     None => true,
+                // };
 
                 let description_match = match description_filter {
                     Some(d_filter_ref) => provider
@@ -360,9 +360,9 @@ impl StorageBackend for MemoryStorage {
                     (None, None) => true,
                 };
 
-                // Priority: Stac Vesion -> created_at -> then updated_at -> then the strings.
-                stac_version_match
-                    && created_at_match
+                // Priority:  created_at -> then updated_at -> then the strings.
+                // stac_version_match
+                     created_at_match
                     && updated_at_match
                     && name_match
                     && description_match

@@ -9,11 +9,11 @@ use superstac_engine::SuperSTACEngine;
 use superstac_search::query::SearchQuery;
 use tracing_subscriber::EnvFilter;
 
-/// Federated STAC search across multiple catalogs.
+/// Many catalogs. One search. Search across STAC catalogs from the command line.
 #[derive(Parser)]
 #[command(name = "superstac", version, about, long_about = None)]
 struct Cli {
-    /// Path to the superstac config file.
+    /// Path to the SuperSTAC config file.
     #[arg(long, default_value = "superstac.yml", global = true)]
     config: PathBuf,
 

@@ -36,7 +36,7 @@ fn create_provider(id: &str) -> CatalogProvider {
         Some("https://website.com".to_string()),
         Some("https://www.google.com/logo.png".to_string()),
         None,
-        None,
+    
     )
     .expect("Provider should be created")
 }
@@ -49,7 +49,7 @@ fn create_provider_with_result(id: &str) -> Result<CatalogProvider, SuperSTACErr
         Some("https://website.com".to_string()),
         Some("https://www.google.com/logo.png".to_string()),
         None,
-        None,
+  
     )
 }
 
@@ -770,7 +770,7 @@ fn memory_store_panics_when_creating_provider_with_unknown_catalog_ids() {
         "test-provider".to_string(),
         Some("Microsoft Provider".to_string()),
         Some("This is the Microsoft Provider".to_string()),
-        Some("https://website.com".to_string()),
+
         Some("https://www.google.com/logo.png".to_string()),
         None,
         Some(vec!["unknown_catalogs".to_string()]),
@@ -838,7 +838,7 @@ fn memory_store_accepts_updating_provider_with_valid_parameters() {
     let updated_provider = store.update_provider(
         &provider.id,
         CatalogProviderUpdate {
-            stac_version: None,
+            // stac_version: None,
             name: Some("New title".to_string()),
             description: description.clone(),
             logo_url: None,
@@ -865,7 +865,7 @@ fn memory_store_rejects_updating_provider_with_invalid_catalog_ids() {
     let updated_provider = store.update_provider(
         &provider.id,
         CatalogProviderUpdate {
-            stac_version: None,
+            // stac_version: None,
             name: Some("New title".to_string()),
             description: None,
             logo_url: None,
@@ -1044,7 +1044,7 @@ fn memory_store_returns_matched_providers_when_filtered() {
             id: Some("test-provider".to_string()),
             name: None,
             description: None,
-            stac_version: None,
+            // stac_version: None,
             created_after: None,
             created_before: None,
             updated_before: None,
@@ -1057,10 +1057,10 @@ fn memory_store_returns_matched_providers_when_filtered() {
 
     // The content should be the one of provider1
     assert_eq!(filtered_providers.first().unwrap().id, provider1.id);
-    assert_eq!(
-        filtered_providers.first().unwrap().stac_version,
-        provider1.stac_version
-    );
+    // assert_eq!(
+    //     // filtered_providers.first().unwrap().stac_version,
+    //     // provider1.stac_version
+    // );
 
     // Filter by string search in the title. For this add another catalog with a different name/description
     let creation_date = get_date_time();
@@ -1071,7 +1071,7 @@ fn memory_store_returns_matched_providers_when_filtered() {
                 "new_id".to_string(),
                 Some("STAC Provider".to_string()),
                 Some("A different STAC Provider".to_string()),
-                Some("https://test.com".to_string()),
+               
                 Some("https://test.com".to_string()),
                 Some("A test version".to_string()),
                 None,

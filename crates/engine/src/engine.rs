@@ -22,6 +22,7 @@ use std::time::Duration;
 
 use superstac_search::{
     executor::SearchExecutor,
+    // TODO - Move this to settings.
     options::{FederationOptions, RetryPolicy},
     query::SearchQuery,
     response::SearchResponse,
@@ -39,27 +40,34 @@ pub struct SuperSTACEngine {
     client: Client,
     health_manager: Option<HealthManager>,
     executor: SearchExecutor,
-    started: AtomicBool,
+    pub started: AtomicBool,
 }
 
 /// User-Agent attached to every outbound HTTP request. Set as a default
 /// header on the shared reqwest client at engine construction. When
 /// per-catalog headers are added later, this must be filtered out of any
 /// user-supplied set so it can't be overridden.
-const USER_AGENT: &str = concat!("superstac/", env!("CARGO_PKG_VERSION"));
+const USER_AGENT: &'static str = concat!("superstac/", env!("CARGO_PKG_VERSION"));
 
 impl SuperSTACEngine {
     /// Build an engine over the given storage. Construct the storage via
     /// `superstac_config::init_from_yaml` or directly via
     /// [`superstac_core::models::storage::Storage::init`].
     pub fn new(storage: Box<dyn StorageBackend + Send + Sync>) -> Self {
+        Self::from_shared(Arc::new(Mutex::new(storage)))
+    }
+
+    /// Build an engine over an already-shared storage handle. Useful when a
+    /// caller (e.g. the Python bindings) needs to retain mutation access to
+    /// the same backend the engine reads from.
+    pub fn from_shared(storage: SharedStorage) -> Self {
         let client = Client::builder()
             .user_agent(USER_AGENT)
             .build()
             .expect("failed to build reqwest client");
 
         Self {
-            storage: Arc::new(Mutex::new(storage)),
+            storage,
             client: client.clone(),
             health_manager: Some(HealthManager::new(client.clone())),
             executor: SearchExecutor::new(client),
@@ -86,6 +94,7 @@ impl SuperSTACEngine {
         // Introspect each healthy catalog's /collections so we can do source
         // selection at search time. Failures here are non-fatal — affected
         // catalogs remain `supported_collections = None` (pass-through).
+        // TODO - Maybe have a way to disable this by default ?
         self.introspect_capabilities().await?;
 
         self.started.store(true, Ordering::Relaxed);
@@ -107,6 +116,7 @@ impl SuperSTACEngine {
         self.started.store(false, Ordering::Relaxed);
     }
 
+    /// Run health checks against every catalog, update storage with results. Then update the `supported_collections` sets for any newly-healthy catalogs. 
     async fn introspect_capabilities(&self) -> Result<(), SuperSTACError> {
         let healthy_catalogs = {
             let storage = self.storage.lock();
@@ -161,6 +171,7 @@ impl SuperSTACEngine {
     /// Federated search. Applies source selection (filter catalogs that
     /// can't possibly serve the requested collections), then fans out.
     pub async fn search(&self, query: SearchQuery) -> Result<SearchResponse, SuperSTACError> {
+        
         self.ensure_started().await?;
 
         let (candidate_catalogs, options) = {
@@ -210,11 +221,14 @@ impl SuperSTACEngine {
             .into_iter()
             .filter(|c| c.supports_any_of(&query.collections))
             .collect();
+        
 
+        // Perform the federated search across the selected catalogs.
         let mut response = self
             .executor
             .federated_search(catalogs, query, options)
             .await?;
+        
         response.metadata.unsupported_collections = unsupported;
 
         Ok(response)

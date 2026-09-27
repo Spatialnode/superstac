@@ -1,0 +1,9 @@
+node_modules/
+.next/
+.source/
+out/
+*.tsbuildinfo
+.env*.local
+public/brand/
+!lib/
+!lib/**
