@@ -1,5 +1,13 @@
 # SuperSTAC (Python)
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/superstac-logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/superstac-logo.svg">
+    <img src="../../docs/assets/superstac-logo.svg" alt="SuperSTAC logo" width="480">
+  </picture>
+</p>
+
 Python bindings for [superstac](https://github.com/spatialnode/superstac) —
 federated STAC search across multiple catalogs.
 

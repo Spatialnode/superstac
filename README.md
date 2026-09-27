@@ -4,12 +4,13 @@
 [![crates.io](https://img.shields.io/crates/v/superstac-search.svg)](https://crates.io/crates/superstac-search)
 [![docs.rs](https://docs.rs/superstac-core/badge.svg)](https://docs.rs/superstac-search)
 
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/superstac-logo-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/superstac-logo.svg">
-  <img src="docs/assets/superstac-logo.svg" alt="SuperSTAC logo" width="480">
-</picture>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/superstac-logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/assets/superstac-logo.svg">
+    <img src="docs/assets/superstac-logo.svg" alt="SuperSTAC logo" width="480">
+  </picture>
+</p>
 
 Federated [STAC](https://stacspec.org/) search across multiple catalogs. Query
 Element84, Microsoft Planetary Computer, and others through one API.
