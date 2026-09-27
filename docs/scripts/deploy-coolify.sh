@@ -10,7 +10,7 @@ set -euo pipefail
 response=$(curl --fail --silent --show-error --proto '=https' \
   --connect-timeout 10 --max-time 60 \
   --header "Authorization: Bearer $COOLIFY_TOKEN" \
-  --request GET "$COOLIFY_DEPLOY_WEBHOOK")
+  --request POST "$COOLIFY_DEPLOY_WEBHOOK")
 deployment=$(jq -er '.deployments[0].deployment_uuid | select(type == "string" and length > 0)' <<< "$response")
 [[ "$deployment" =~ ^[a-zA-Z0-9_-]+$ ]] || { echo 'Invalid deployment UUID' >&2; exit 1; }
 message="Coolify queued deployment $deployment. Confirm rollout completion in Coolify."
