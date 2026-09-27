@@ -9,14 +9,14 @@ description: Embed SuperSTAC in an asynchronous Rust application with explicit c
 
 ```toml title="Cargo.toml"
 [dependencies]
-superstac-core = "0.1"
-superstac-config = "0.1"
-superstac-search = "0.1"
-superstac-engine = "0.1"
+superstac-core = "0.2"
+superstac-config = "0.2"
+superstac-search = "0.2"
+superstac-engine = "0.2"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 
-For this checkout's unreleased API, replace version dependencies with paths such as `superstac-engine = { path = "../superstac/crates/engine" }`. Use Rust 1.88 or newer as declared by the workspace.
+Use Rust 1.88 or newer as declared by the workspace. These examples target SuperSTAC 0.2.
 
 ## A complete search
 

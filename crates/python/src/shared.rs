@@ -5,10 +5,11 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 
+use superstac_config::config::{CatalogConfig, CatalogProviderConfig};
 use superstac_core::{
     models::{
-        catalog::{Catalog, CatalogConfig, CatalogUpdate},
-        provider::{CatalogProvider, CatalogProviderConfig, CatalogProviderUpdate},
+        catalog::{Catalog, CatalogUpdate},
+        provider::{CatalogProvider, CatalogProviderUpdate},
         settings::SettingsUpdate,
     },
     storages::factory::StorageBackend,

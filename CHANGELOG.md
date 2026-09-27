@@ -7,6 +7,26 @@ releases.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-27
+
+### Added
+- First Rust-backed Python distribution with synchronous `Client`, `AsyncClient`,
+  native dictionary results, configuration, discovery, and search metadata.
+- Documentation at https://spatialnode.com/superstac, with Python, Rust, CLI,
+  configuration guides, and a runnable notebook.
+- Release automation for Python wheels, a source distribution, and Rust crates.
+
+### Changed
+- The PyPI package replaces the legacy 0.1.0a2 Python implementation. This is a
+  breaking migration; use the new client API rather than assuming compatibility.
+- Python requires CPython 3.9+. Maturin is a build dependency only.
+- All Rust crate versions advance together to 0.2.0 and link to the docs site.
+
+### Fixed
+- Python bindings import configuration types from their current Rust module.
+- Python `Search` now returns an iterator from `__iter__`.
+- Python type hints include constructor keyword options and `to_geojson()`.
+
 ## [0.1.0] - 2026-05-21
 
 Initial public release.

@@ -16,8 +16,9 @@ This package provides the Python bindings for [SuperSTAC](https://github.com/spa
 
 > **Status: alpha.** APIs are not yet stable. Pre-1.0; expect breaking changes.
 
-`superstac` ships a sync `Client` (drop-in for `pystac_client.Client` in most
-code) and an `AsyncClient` for asyncio users.
+`superstac` provides a synchronous `Client` and an `AsyncClient` for asyncio.
+Results are Python dictionaries. Some method names resemble pystac-client, but
+this is not a drop-in replacement.
 
 ## Documentation
 
@@ -30,6 +31,15 @@ Read the [SuperSTAC documentation](https://spatialnode.com/superstac) for instal
 - [Configuration reference](https://spatialnode.com/superstac/docs/reference/configuration)
 
 Try the [Python quickstart notebook](https://spatialnode.com/superstac/docs/python/notebook) for a two-catalog search, footprint map, and GeoJSON export in Colab or Jupyter.
+
+## Upgrading from 0.1.0a2
+
+Version 0.2.0 replaces the old Python implementation with a Rust engine.
+Use `from superstac import Client, AsyncClient` and follow the
+[Python guide](https://spatialnode.com/superstac/docs/python/overview) to migrate.
+Results are dictionaries, `matched()` counts returned items, and `to_geojson()`
+exports a FeatureCollection. Custom authentication hooks and the full
+pystac-client API are not supported. CPython 3.9 or newer is required.
 
 ## Install
 
@@ -48,7 +58,7 @@ maturin develop
 
 ## Quickstart
 
-### Drop-in for pystac-client (single catalog)
+### Search a single catalog
 
 ```python
 from superstac import Client
@@ -66,7 +76,7 @@ for item in search.items():
     print(item["id"], item["properties"]["datetime"])
 
 print(search.matched(), "items")
-fc = search.as_geojson()    # GeoJSON FeatureCollection dict
+fc = search.to_geojson()    # GeoJSON FeatureCollection dict
 ```
 
 ### Federated across multiple catalogs

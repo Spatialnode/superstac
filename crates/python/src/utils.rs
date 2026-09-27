@@ -8,12 +8,12 @@ pub fn err_to_py(e: SuperSTACError) -> PyErr {
     PyRuntimeError::new_err(e.to_string())
 }
 
-/// Parse a storage backend from a string. Only "memory" is supported in v0.1, but this is where other backends would be added in the future.
+/// Parse a storage backend from a string. Only "memory" is supported, but this is where other backends would be added in the future.
 pub fn parse_storage_kind(kind: &str) -> PyResult<Storage> {
     match kind.to_ascii_lowercase().as_str() {
         "memory" => Ok(Storage::Memory),
         other => Err(PyValueError::new_err(format!(
-            "unknown storage backend '{}'. Only 'memory' is supported in v0.1.",
+            "unknown storage backend '{}'. Only 'memory' is supported.",
             other
         ))),
     }
