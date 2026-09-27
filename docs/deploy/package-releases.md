@@ -1,5 +1,9 @@
 # Package releases
 
+`Package checks` runs on relevant pull requests and can be started manually.
+It does not run on pushes to `main`. The release workflow calls it again to build
+and test the tagged source before publishing.
+
 `Publish packages` runs when a GitHub release is published. Rust tests, five
 native wheel builds (Linux x86-64/ARM64, macOS Intel/Apple Silicon, Windows x86-64),
 installed-wheel tests, and a source-archive rebuild must pass before publication.

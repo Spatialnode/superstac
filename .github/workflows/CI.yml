@@ -3,9 +3,6 @@ name: Package checks
 on:
   pull_request:
     paths: ['crates/**', 'Cargo.toml', 'Cargo.lock', 'scripts/**', '.github/workflows/CI.yml', '.github/workflows/publish.yml']
-  push:
-    branches: [main]
-    paths: ['crates/**', 'Cargo.toml', 'Cargo.lock', 'scripts/**', '.github/workflows/CI.yml', '.github/workflows/publish.yml']
   workflow_dispatch:
   workflow_call:
 
