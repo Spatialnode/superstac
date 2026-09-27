@@ -13,7 +13,7 @@ use tracing_subscriber::EnvFilter;
 #[derive(Parser)]
 #[command(name = "superstac", version, about, long_about = None)]
 struct Cli {
-    /// Path to the superstac config file.
+    /// Path to the SuperSTAC config file.
     #[arg(long, default_value = "superstac.yml", global = true)]
     config: PathBuf,
 

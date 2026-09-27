@@ -1,4 +1,4 @@
-# superstac (Python)
+# SuperSTAC (Python)
 
 Python bindings for [superstac](https://github.com/spatialnode/superstac) —
 federated STAC search across multiple catalogs.

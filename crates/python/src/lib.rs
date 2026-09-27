@@ -1,4 +1,4 @@
-//! PyO3 bindings for superstac.
+//! PyO3 bindings for SuperSTAC.
 //!
 //! Exposes two top-level classes that share the same engine internals:
 //!

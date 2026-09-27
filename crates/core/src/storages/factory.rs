@@ -10,10 +10,6 @@ use crate::{
 };
 
 /// Storage trait implemented by each backend (memory, sqlite, postgres, ...).
-///
-/// All federated-search state — catalogs, providers, settings — lives behind
-/// this trait so the rest of the codebase doesn't know or care which backend
-/// is in use.
 pub trait StorageBackend: Send + Sync {
     /// Apply partial settings update. `None` fields are left alone.
     fn update_settings(&self, update: SettingsUpdate);
@@ -24,7 +20,7 @@ pub trait StorageBackend: Send + Sync {
     /// Get a provider by id.
     fn get_provider(&self, id: &str) -> Result<&CatalogProvider, SuperSTACError>;
 
-    /// Insert a provider. Honors `auto_fix_duplicate_provider_id` if id collides.
+    /// Insert a provider. 
     fn create_provider(
         &mut self,
         provider: CatalogProvider,
@@ -33,7 +29,7 @@ pub trait StorageBackend: Send + Sync {
     /// Delete a provider by id.
     fn delete_provider(&mut self, id: &str) -> Result<(), SuperSTACError>;
 
-    /// Delete multiple providers. Errors list ids that weren't found.
+    /// Delete multiple providers. 
     fn delete_providers(&mut self, ids: Vec<&str>) -> Result<(), SuperSTACError>;
 
     /// List providers, optionally filtered. See [`CatalogProviderFilters`].
@@ -42,7 +38,7 @@ pub trait StorageBackend: Send + Sync {
         filters: Option<CatalogProviderFilters>,
     ) -> Result<Vec<CatalogProvider>, SuperSTACError>;
 
-    /// Apply a partial provider update by id. `None` fields are left alone.
+    /// Apply a partial provider update by id. 
     fn update_provider(
         &mut self,
         id: &str,
@@ -52,7 +48,7 @@ pub trait StorageBackend: Send + Sync {
     /// Get a catalog by id.
     fn get_catalog(&self, id: &str) -> Result<&Catalog, SuperSTACError>;
 
-    /// Apply a partial catalog update by id. `None` fields are left alone.
+    /// Apply a partial catalog update by id. 
     fn update_catalog(
         &mut self,
         id: &str,
@@ -60,7 +56,6 @@ pub trait StorageBackend: Send + Sync {
     ) -> Result<Catalog, SuperSTACError>;
 
     /// Insert a catalog, optionally linked to a provider.
-    /// Honors `auto_fix_duplicate_catalog_id` if id collides.
     fn create_catalog(
         &mut self,
         catalog: Catalog,

@@ -1,4 +1,4 @@
-//! Config-file loading for superstac. Reads `superstac.yml` and seeds a
+//! Config-file loading for SuperSTAC. Reads `superstac.yml` and seeds a
 //! storage backend with providers, catalogs, and settings.
 
 pub mod config;

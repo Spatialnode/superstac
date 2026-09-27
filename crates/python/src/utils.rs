@@ -3,6 +3,7 @@ use pyo3::prelude::*;
 use pythonize::{depythonize, pythonize};
 use superstac_core::{errors::SuperSTACError, models::storage::Storage};
 
+/// Convert a SuperSTACError to a Python exception with a helpful error message.
 pub fn err_to_py(e: SuperSTACError) -> PyErr {
     PyRuntimeError::new_err(e.to_string())
 }
@@ -18,13 +19,14 @@ pub fn parse_storage_kind(kind: &str) -> PyResult<Storage> {
     }
 }
 
-// Todo - maybe find a way to prevent this ? E.g exploring arrow etc for zero-copy exchange...
+/// Convert a Rust type to a Python object, with a helpful error message on failure.
 pub fn pythonize_obj<T: serde::Serialize>(py: Python<'_>, value: &T) -> PyResult<Py<PyAny>> {
     pythonize(py, value)
         .map(|b| b.unbind())
         .map_err(|e| PyRuntimeError::new_err(format!("serialize failed: {}", e)))
 }
 
+/// Convert a Python object to a Rust type, with a helpful error message on failure. 
 pub fn depythonize_into<'py, T: serde::Deserialize<'py>>(
     obj: &'py Bound<'py, PyAny>,
     label: &str,

@@ -1,4 +1,4 @@
-//! Domain models, storage trait, and shared utilities for superstac.
+//! Domain models, storage trait, and shared utilities for SuperSTAC.
 //!
 //! - [`models`]: `Catalog`, `Provider`, `Settings`, etc.
 //! - [`storages`]: the [`storages::factory::StorageBackend`] trait and the

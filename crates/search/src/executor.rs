@@ -195,9 +195,8 @@ impl SearchExecutor {
     }
 }
 
-/// For now: treat all `SearchFailed` errors as retryable. The proper fix is a
-/// richer error taxonomy (Network / Timeout / Server5xx / Client4xx) which is
-/// out of scope here.
+/// For now: treat all `SearchFailed` errors as retryable. 
+/// TODO - richer error taxonomy (Network / Timeout / Server5xx / Client4xx) and only retry on appropriate ones.
 fn is_retryable(error: &SuperSTACError) -> bool {
     matches!(error, SuperSTACError::SearchFailed(_))
 }

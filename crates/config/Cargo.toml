@@ -1,6 +1,6 @@
 [package]
 name = "superstac-config"
-description = "YAML config loading for superstac federated STAC search."
+description = "YAML config loading for SuperSTAC federated STAC search."
 keywords = ["stac", "geospatial", "config"]
 categories = ["science::geo", "config"]
 readme = "../../README.md"

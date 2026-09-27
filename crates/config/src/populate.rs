@@ -7,8 +7,7 @@ use superstac_core::{
 use crate::config::SuperStacConfig;
 
 /// Seed a backend with the providers, catalogs, and settings parsed from a
-/// [`SuperStacConfig`]. Generic over the backend trait so future SQLite /
-/// Postgres backends work without changes here.
+/// [`SuperStacConfig`]. Generic over the backend trait so future backends work without changes here.
 pub fn populate_backend_from_config(
     backend: &mut dyn StorageBackend,
     config: SuperStacConfig,
@@ -35,6 +34,7 @@ pub fn populate_backend_from_config(
         retry_initial_backoff_ms: config.settings.retry_initial_backoff_ms,
         retry_max_backoff_ms: config.settings.retry_max_backoff_ms,
         max_items_per_catalog: config.settings.max_items_per_catalog,
+        enable_background_health_monitor: config.settings.enable_background_health_monitor,
     });
 
     for provider_cfg in config.providers {

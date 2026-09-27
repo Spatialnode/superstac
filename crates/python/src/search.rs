@@ -8,7 +8,7 @@ use superstac_search::response::SearchResponse;
 /// Returned by `Client.search(...)` and `await AsyncClient.search(...)`.
 ///
 /// Mirrors the parts of pystac-client's `ItemSearch` users actually iterate
-/// over: `.items()`, `.matched()`, `.item_collection_as_dict()`. Superstac-
+/// over: `.items()`, `.matched()`, `.item_collection_as_dict()`. SuperSTAC-
 /// specific provenance (per-catalog failures, dedupe stats, etc.) is on
 /// `.metadata`.
 #[pyclass(name = "Search", module = "superstac._superstac")]
@@ -72,7 +72,7 @@ impl PySearch {
         self.item_collection_as_dict(py)
     }
 
-    /// Superstac-specific stats: catalogs queried/succeeded/failed, dedupe
+    /// SuperSTAC-specific stats: catalogs queried/succeeded/failed, dedupe
     /// count, per-catalog failures, etc. Schema mirrors `SearchMetadata`.
     #[getter]
     pub fn metadata(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {

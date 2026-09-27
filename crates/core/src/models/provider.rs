@@ -6,59 +6,6 @@ use crate::{
     utils::{get_date_time, parse_url, validate_identifier},
 };
 
-/// YAML-deserialization shape for a provider entry. Converted to
-/// [`CatalogProvider`] via `TryFrom`.
-#[derive(Debug, Deserialize)]
-pub struct CatalogProviderConfig {
-    pub id: String,
-    pub name: Option<String>,
-    pub description: Option<String>,
-    pub logo_url: Option<String>,
-    pub website_url: Option<String>,
-    pub stac_version: Option<String>,
-    pub catalog_ids: Option<Vec<String>>,
-}
-
-impl TryFrom<CatalogProviderConfig> for CatalogProvider {
-    type Error = SuperSTACError;
-
-    fn try_from(cfg: CatalogProviderConfig) -> Result<Self, Self::Error> {
-        validate_identifier(&cfg.id)?;
-
-        let website_url = match cfg.website_url {
-            Some(w) => {
-                parse_url(&w).map_err(|e| ValidationError::InvalidUrl(e.to_string()))?;
-                Some(w)
-            }
-            None => None,
-        };
-
-        let logo_url = match cfg.logo_url {
-            Some(l) => {
-                parse_url(&l).map_err(|e| ValidationError::InvalidUrl(e.to_string()))?;
-                Some(l)
-            }
-            None => None,
-        };
-
-        let stac_version = cfg
-            .stac_version
-            .ok_or_else(|| ValidationError::MissingField("stac_version".into()))?;
-
-        Ok(Self {
-            id: cfg.id,
-            name: cfg.name,
-            description: cfg.description,
-            website_url,
-            logo_url,
-            stac_version: Some(stac_version),
-            catalog_ids: None,
-            created_at: Some(get_date_time()),
-            updated_at: None,
-        })
-    }
-}
-
 /// A vendor/organization that operates one or more STAC catalogs. Mostly
 /// metadata (name, logo, website) — the actual API endpoints live on
 /// [`super::catalog::Catalog`], linked back via `catalog_ids`.
@@ -77,7 +24,7 @@ pub struct CatalogProvider {
     pub logo_url: Option<String>,
 
     /// The STAC version the provider is conforming to.
-    pub stac_version: Option<String>,
+    // pub stac_version: Option<String>,
 
     /// The URL to the provider website/public page.
     pub website_url: Option<String>,
@@ -100,7 +47,7 @@ impl CatalogProvider {
         description: Option<String>,
         website_url: Option<String>,
         logo_url: Option<String>,
-        stac_version: Option<String>,
+        // stac_version: Option<String>,
         catalog_ids: Option<Vec<String>>,
     ) -> Result<Self, SuperSTACError> {
         validate_identifier(&id)?;
@@ -128,7 +75,7 @@ impl CatalogProvider {
             id,
             name,
             website_url: valid_website,
-            stac_version,
+            // stac_version,
             logo_url: valid_logo,
             description,
             catalog_ids,
@@ -148,7 +95,7 @@ impl CatalogProvider {
         website: Option<String>,
         logo_url: Option<String>,
         description: Option<String>,
-        stac_version: Option<String>,
+        // stac_version: Option<String>,
         catalog_ids: Option<Vec<String>>,
     ) -> Result<(), ValidationError> {
         if let Some(updated_url) = logo_url {
@@ -175,7 +122,7 @@ impl CatalogProvider {
 
         self.name = name;
         self.description = description;
-        self.stac_version = stac_version;
+        // self.stac_version = stac_version;
         self.catalog_ids = catalog_ids;
         self.set_update_date();
         Ok(())
@@ -225,7 +172,7 @@ pub struct CatalogProviderFilters {
     pub description: Option<String>,
 
     /// Performs a string search on the provider stac_version.
-    pub stac_version: Option<String>,
+    // pub stac_version: Option<String>,
 
     /// Performs a string search on the provider catalogs.
     pub catalog_id: Option<String>,
@@ -245,7 +192,7 @@ impl Default for CatalogProviderFilters {
         CatalogProviderFilters{
             id: None,
             name:None,
-            stac_version:None,
+            // stac_version:None,
             catalog_id:None,
            
             description: None,
@@ -270,7 +217,7 @@ pub struct CatalogProviderUpdate {
     pub website_url: Option<String>,
 
     /// Updates the provider stac_version.
-    pub stac_version: Option<String>,
+    // pub stac_version: Option<String>,
 
     /// Updates the provider stac_version.
     pub catalog_ids: Option<Vec<String>>,

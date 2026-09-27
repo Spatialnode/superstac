@@ -1,8 +1,15 @@
-# superstac
+# SuperSTAC
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
 [![crates.io](https://img.shields.io/crates/v/superstac-search.svg)](https://crates.io/crates/superstac-search)
 [![docs.rs](https://docs.rs/superstac-core/badge.svg)](https://docs.rs/superstac-search)
+
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/superstac-logo-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/superstac-logo.svg">
+  <img src="docs/assets/superstac-logo.svg" alt="SuperSTAC logo" width="480">
+</picture>
 
 Federated [STAC](https://stacspec.org/) search across multiple catalogs. Query
 Element84, Microsoft Planetary Computer, and others through one API.
@@ -20,7 +27,7 @@ A single STAC catalog isn't always enough:
 - The catalog you usually use is down or rate-limited.
 - Different providers index the same scenes under different names.
 
-superstac queries every catalog you've registered, drops the ones that don't
+SuperSTAC queries every catalog you've registered, drops the ones that don't
 serve the requested collection, runs the rest concurrently with retry and
 timeouts, then merges and dedupes the results.
 
@@ -165,7 +172,6 @@ Some things on the way:
 
 - Authentication (per-catalog headers, OAuth, API keys)
 - SQLite + Postgres backends
-- Python bindings via PyO3
 - and many more.
 
 ## License

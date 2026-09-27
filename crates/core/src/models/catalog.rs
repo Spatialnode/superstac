@@ -31,6 +31,7 @@ pub struct CatalogSettings {
     pub health_check_strategy: HealthCheckFrequencyStrategy,
     /// Status codes considered "healthy" (inclusive). Default `(200, 299)`.
     pub healthy_status_code_range: (u16, u16),
+    pub enable_background_health_monitor: Option<bool>,
 }
 
 impl Default for CatalogSettings {
@@ -38,6 +39,7 @@ impl Default for CatalogSettings {
         CatalogSettings {
             health_check_strategy: HealthCheckFrequencyStrategy::Hourly,
             healthy_status_code_range: (200, 299),
+            enable_background_health_monitor: None,
         }
     }
 }
@@ -135,7 +137,8 @@ pub struct HealthStatus {
     pub status_code: u16,
 }
 
-fn get_default_health_status(url: String) -> HealthStatus {
+
+pub fn get_default_health_status(url: String) -> HealthStatus {
     HealthStatus {
         // defaults to false. Always assumes the health status is down. It will be updated after the first health check.
         available: false,
@@ -151,57 +154,7 @@ pub struct CatalogCapabilities {
     filtering: String,
 }
 
-/// A data structure for a STAC catalog from the YAML file.
-#[derive(Debug, Deserialize)]
-pub struct CatalogConfig {
-    pub id: String,
-    pub provider: Option<String>,
-    pub title: Option<String>,
-    pub url: Option<String>,
-    pub description: Option<String>,
-    pub settings: Option<CatalogSettings>,
-    /// Maps canonical collection IDs to this catalog's local collection IDs.
-    /// E.g. `sentinel-2-l2a: S2MSI2A` on a CDSE-style catalog.
-    pub collection_aliases: Option<HashMap<String, String>>,
-    /// Per-collection asset rename rules, keyed by canonical collection ID.
-    /// Inner map: canonical asset key -> this catalog's local asset key.
-    /// E.g. `{ "sentinel-2-l2a": { "blue": "B02", "green": "B03" } }`.
-    pub asset_aliases: Option<HashMap<String, HashMap<String, String>>>,
-}
-
-impl TryFrom<CatalogConfig> for Catalog {
-    type Error = SuperSTACError;
-
-    fn try_from(cfg: CatalogConfig) -> Result<Self, Self::Error> {
-        validate_identifier(&cfg.id)?;
-
-        let url = match cfg.url {
-            Some(w) => {
-                parse_url(&w).map_err(|e| ValidationError::InvalidUrl(e.to_string()))?;
-                Some(w)
-            }
-            None => None,
-        };
-
-        Ok(Self {
-            id: cfg.id,
-            provider: None,
-            title: cfg.title,
-            url: url.clone().unwrap(),
-            description: cfg.description,
-            settings: cfg.settings.unwrap_or(CatalogSettings::default()),
-            health_status: get_default_health_status(url.unwrap()),
-            capabilities: None,
-            collection_aliases: cfg.collection_aliases.unwrap_or_default(),
-            asset_aliases: cfg.asset_aliases.unwrap_or_default(),
-            supported_collections: None,
-            created_at: Some(get_date_time()),
-            updated_at: None,
-        })
-    }
-}
-
-/// A STAC catalog endpoint registered with superstac.
+/// A STAC catalog endpoint registered with SuperSTAC.
 ///
 /// Construct via [`Catalog::new`] for direct use, or by loading a YAML
 /// `superstac.yml` (which deserializes [`CatalogConfig`] and converts via
