@@ -7,7 +7,32 @@ import { CodePreview } from '@/components/code-preview';
 import { PoweredBySpatialnode } from '@/components/powered-by-spatialnode';
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = { alternates: { canonical: '/superstac' } };
+const socialTitle = 'SuperSTAC — Many catalogs. One search.';
+const socialDescription = 'Find satellite imagery across multiple sources with one search.';
+const socialImage = {
+  url: 'https://spatialnode.com/superstac/superstac-og.png',
+  width: 1200,
+  height: 630,
+  alt: 'SuperSTAC — Many catalogs. One search. Find satellite imagery across multiple sources.',
+};
+
+export const metadata: Metadata = {
+  alternates: { canonical: '/superstac' },
+  openGraph: {
+    type: 'website',
+    url: 'https://spatialnode.com/superstac',
+    siteName: 'SuperSTAC by Spatialnode',
+    title: socialTitle,
+    description: socialDescription,
+    images: [{ ...socialImage, type: 'image/png' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: socialTitle,
+    description: socialDescription,
+    images: [socialImage],
+  },
+};
 
 const guides = [
   { icon: Braces, title: 'Python', text: 'Search from scripts and notebooks with the sync or async client.', href: '/docs/python/overview' },
