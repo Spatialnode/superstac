@@ -37,11 +37,11 @@ jobs:
 
       - name: Check deployment configuration
         env:
-          COOLIFY_DEPLOY_WEBHOOK: ${{ vars.COOLIFY_DEPLOY_WEBHOOK }}
+          COOLIFY_DEPLOY_WEBHOOK: ${{ secrets.COOLIFY_DEPLOY_WEBHOOK }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
         run: |
-          : "${COOLIFY_DEPLOY_WEBHOOK:?Set the docs-production COOLIFY_DEPLOY_WEBHOOK variable}"
-          : "${COOLIFY_TOKEN:?Set the docs-production COOLIFY_TOKEN secret}"
+          : "${COOLIFY_DEPLOY_WEBHOOK:?Set the COOLIFY_DEPLOY_WEBHOOK Actions secret}"
+          : "${COOLIFY_TOKEN:?Set the COOLIFY_TOKEN Actions secret}"
 
       - name: Name the image
         id: image
@@ -105,7 +105,7 @@ jobs:
 
       - name: Request Coolify deployment
         env:
-          COOLIFY_DEPLOY_WEBHOOK: ${{ vars.COOLIFY_DEPLOY_WEBHOOK }}
+          COOLIFY_DEPLOY_WEBHOOK: ${{ secrets.COOLIFY_DEPLOY_WEBHOOK }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
         run: bash docs/scripts/deploy-coolify.sh
 

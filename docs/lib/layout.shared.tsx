@@ -9,7 +9,6 @@ export function baseOptions(): BaseLayoutProps {
       { text: 'Documentation', url: '/docs' },
       { text: 'Python', url: '/docs/python/overview' },
       { text: 'Rust', url: '/docs/rust/overview' },
-      { text: 'Spatialnode', url: 'https://spatialnode.com', external: true },
     ],
   };
 }

@@ -1,14 +1,15 @@
 # Build context is docs/, not the repository root.
-FROM node:22-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm install --global pnpm@9.8.0
 COPY package.json pnpm-lock.yaml source.config.ts ./
+COPY scripts/check-node.mjs ./scripts/check-node.mjs
 RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm check && pnpm build
 
-FROM node:22-alpine AS runner
+FROM node:26-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=3000
 COPY --from=build --chown=node:node /app/.next/standalone ./
