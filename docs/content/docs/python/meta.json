@@ -1,0 +1,10 @@
+{
+  "title": "Python",
+  "pages": [
+    "overview",
+    "notebook",
+    "async",
+    "api"
+  ],
+  "defaultOpen": true
+}

@@ -1,0 +1,37 @@
+---
+title: Introduction
+description: Search across STAC catalogs through one interface, with Python, Rust, or the command line.
+---
+
+import { Cards, Card } from 'fumadocs-ui/components/card';
+
+**Many catalogs. One search.**
+
+Your data lives across catalogs. SuperSTAC gives you one place to search them: register compatible STAC APIs, submit a query, and work with a combined set of items.
+
+The same Rust engine powers a Python package, a Rust library, and a command-line tool. It handles source selection, concurrent requests, collection and asset aliases, duplicate IDs, and per-catalog failures.
+
+<Cards>
+  <Card title="Run your first search" description="A complete example against two catalogs." href="/docs/start/quickstart" />
+  <Card title="Understand federation" description="From one query to multiple sources." href="/docs/concepts/federation" />
+  <Card title="Use Python" description="Scripts, notebooks, and asyncio applications." href="/docs/python/overview" />
+  <Card title="Try the notebook" description="Search, map, and export in Colab or Jupyter." href="/docs/python/notebook" />
+  <Card title="Use Rust" description="Embed the engine in your application." href="/docs/rust/overview" />
+</Cards>
+
+## What you can build
+
+Search imagery across public and private-compatible endpoints, create a shared collection vocabulary for your application, or explore catalog availability from the terminal. SuperSTAC returns STAC item metadata; asset downloads and processing stay in your existing workflow.
+
+## Before you start
+
+SuperSTAC is **alpha software**. Start with [installation](/docs/start/installation), then the [quickstart](/docs/start/quickstart). Read the [current limitations](/docs/reference/status) before relying on the API in production.
+
+## Choose your interface
+
+| Interface | A good fit for |
+| --- | --- |
+| [Python Client](/docs/python/overview) | Notebooks, scripts, and synchronous pipelines. |
+| [Python AsyncClient](/docs/python/async) | Applications that already use asyncio. |
+| [Rust engine](/docs/rust/overview) | Native integrations on Tokio. |
+| [CLI](/docs/cli/overview) | Terminal exploration and shell workflows. |

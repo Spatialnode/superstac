@@ -1,0 +1,11 @@
+{
+  "title": "Reference",
+  "pages": [
+    "configuration",
+    "search",
+    "results",
+    "troubleshooting",
+    "status"
+  ],
+  "defaultOpen": true
+}

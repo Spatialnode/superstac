@@ -1,0 +1,120 @@
+---
+title: Your first search
+description: Register two catalogs, search Sentinel-2 imagery, and inspect a combined response.
+---
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+[Install SuperSTAC](/docs/start/installation/) first. This example searches Sentinel-2 imagery in Earth Search and Microsoft Planetary Computer.
+
+Prefer to run the example interactively? [Open the Python notebook](/docs/python/notebook) in Colab or Jupyter for a complete walkthrough with a map and downloadable results.
+
+## 1. Register your catalogs
+
+Python can take a dictionary directly. The CLI and the Rust example below load a YAML file. Save this complete file as `superstac.yml` in your working directory, or [download it](/superstac/examples/superstac.yml).
+
+```yaml title="superstac.yml"
+providers: []
+
+catalogs:
+  - id: earth-search
+    url: https://earth-search.aws.element84.com/v1
+  - id: microsoft
+    url: https://planetarycomputer.microsoft.com/api/stac/v1
+
+settings:
+  health_check_strategy: hourly
+  healthy_status_code_range: [200, 299]
+  auto_fix_duplicate_catalog_id: true
+  auto_fix_duplicate_provider_id: true
+  log_level: info
+  logging_enabled: true
+  search_healthy_catalogs_only: true
+  deduplicate_items: true
+  unify_response: true
+  max_concurrent_catalogs: 8
+  per_catalog_timeout_seconds: 30
+  max_retry_attempts: 2
+  retry_initial_backoff_ms: 100
+  retry_max_backoff_ms: 2000
+  max_items_per_catalog: 1000
+```
+
+> **Use the complete YAML**
+>
+> The current YAML loader requires `catalogs`, `providers`, and `settings`, including the non-optional settings shown above. Python dictionary configuration accepts partial settings. They are not interchangeable deserialization paths.
+
+## 2. Search an area and time range
+
+<Tabs items={["Python", "Command line"]}>
+<Tab value="Python">
+
+```python
+from superstac import Client
+
+client = Client(catalogs=[
+    {"id": "earth-search", "url": "https://earth-search.aws.element84.com/v1"},
+    {"id": "microsoft", "url": "https://planetarycomputer.microsoft.com/api/stac/v1"},
+])
+try:
+    search = client.search(
+        collections=["sentinel-2-l2a"],
+        bbox=[6.0, 49.0, 7.0, 50.0],
+        datetime="2024-01-01T00:00:00Z/2024-01-31T23:59:59Z",
+        limit=5,
+    )
+    for item in search.items():
+        print(item["id"], item["collection"])
+    print(search.metadata)
+finally:
+    client.shutdown()
+```
+
+To use the YAML file instead, replace construction with `client = Client.from_yaml("superstac.yml")`.
+
+</Tab>
+<Tab value="Command line">
+
+```bash
+superstac search \
+  -c sentinel-2-l2a \
+  -b 6.0,49.0,7.0,50.0 \
+  -d 2024-01-01T00:00:00Z/2024-01-31T23:59:59Z \
+  -l 5
+```
+
+Inspect the full response as JSON:
+
+```bash
+superstac --json search -c sentinel-2-l2a -l 5
+```
+
+</Tab>
+</Tabs>
+
+The first search starts the engine automatically: it checks catalog health and discovers available collections before querying. This initial work can take longer than later searches.
+
+## 3. Understand the response
+
+`limit=5` caps each catalog at five returned items. Two selected catalogs can contribute up to ten items before duplicates are removed. It is not a global limit or a count of all matching scenes.
+
+Inspect `catalogs_queried`, `catalogs_failed`, and `failures` in the metadata. An empty result can mean no matching scenes, no selected healthy catalogs, or catalog failures; the counts help distinguish them.
+
+## 4. Export the items
+
+```python
+import json
+from superstac import Client
+
+client = Client.open("https://earth-search.aws.element84.com/v1")
+try:
+    search = client.search(collections=["sentinel-2-l2a"], limit=5)
+    with open("items.geojson", "w") as output:
+        json.dump(search.to_geojson(), output)
+finally:
+    client.shutdown()
+```
+
+This writes item metadata, not satellite image pixels. Accessing an asset URL may require provider-specific authentication or signing.
+
+Continue with [Python](/docs/python/overview/), [Rust](/docs/rust/overview/), or [configuration](/docs/reference/configuration/).

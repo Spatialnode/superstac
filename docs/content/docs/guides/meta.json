@@ -1,0 +1,9 @@
+{
+  "title": "Guides",
+  "pages": [
+    "catalogs",
+    "aliases",
+    "resilience"
+  ],
+  "defaultOpen": true
+}
