@@ -185,11 +185,8 @@ RUST_LOG=superstac_search=debug superstac search -c sentinel-2-l2a
 
 ## Roadmap
 
-Some things on the way:
-
-- Authentication (per-catalog headers, OAuth, API keys)
-- SQLite + Postgres backends
-- and many more.
+See [ROADMAP.MD](ROADMAP.MD) for short-term, near-term, and long-term priorities,
+plus the v1.0 release checklist.
 
 ## License
 
