@@ -88,6 +88,16 @@ export default function Home() {
           <CodePreview />
         </section>
 
+        <section className="article-section" aria-labelledby="article-title">
+          <div className="section-intro">
+            <h2 id="article-title">Why SuperSTAC?</h2>
+            <p>The pipeline problem that led to SuperSTAC, and the thinking behind it.</p>
+          </div>
+          <a href="https://www.spatialnode.net/articles/introducing-superstac-many-catalogs-one-search2a5e11" className="text-link">
+            Read the story on Spatialnode <ArrowUpRight size={15} aria-hidden="true" />
+          </a>
+        </section>
+
         <section className="reference-banner" aria-labelledby="reference-title">
           <h2 id="reference-title">Reference</h2>
           <div>
