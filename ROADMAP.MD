@@ -3,6 +3,8 @@
 Our priority is reliable federated STAC search. These are areas of focus,
 subject to feedback and capacity, with no fixed delivery dates.
 
+Last Updated: September 28th, 2026
+
 ## Short term
 
 - Fix search and iterator edge cases, backed by focused tests.
