@@ -24,6 +24,15 @@ normalized to canonical names — regardless of which catalog they came from.
 > **Status: alpha.** APIs and YAML schema are not yet stable. Pre-1.0; expect
 > breaking changes.
 
+## Features
+
+- **Federated search:** Query multiple STAC catalogs concurrently with spatial, temporal, collection, and item filters.
+- **Collection discovery:** Find available collections and the catalogs that serve them.
+- **Consistent names:** Map provider-specific collection IDs and asset keys to canonical names through configurable aliases.
+- **Deduplicated results:** Merge items across catalogs by item ID, with source provenance available in Rust and CLI results.
+- **Resilient requests:** Configure retries, per-catalog timeouts, and concurrency limits, with per-catalog failure reporting.
+- **Python, Rust, and CLI:** Use synchronous or asynchronous Python clients, embed the Rust engine, or search from the command line.
+
 ## Why
 
 A single STAC catalog isn't always enough:
