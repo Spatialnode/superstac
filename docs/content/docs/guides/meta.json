@@ -3,7 +3,9 @@
   "pages": [
     "catalogs",
     "aliases",
-    "resilience"
+    "resilience",
+    "geoparquet",
+    "benchmarks"
   ],
   "defaultOpen": true
 }

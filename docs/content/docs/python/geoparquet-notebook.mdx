@@ -1,0 +1,39 @@
+---
+title: GeoParquet notebook
+description: Build a reusable inventory for your study area and explore it in Jupyter or Colab.
+---
+
+Build a satellite-data inventory for a small area around Madrid, then reuse it
+to explore dates and scenes without querying every provider again.
+
+<a href="/superstac/notebooks/superstac-geoparquet.ipynb" download>Download the GeoParquet notebook</a>,
+then open it in Jupyter or upload it through **File → Upload notebook** in
+[Google Colab](https://colab.research.google.com/).
+
+[Open directly in Google Colab](https://colab.research.google.com/drive/1JIx8j0Vi7jypKe5Q6klgCzYQMFHMaKGc?usp=sharing).
+The notebook also works by download/upload. It requires SuperSTAC v0.3.x; before
+the release is published, install a locally built wheel and skip its installation cell.
+
+## What you will try
+
+1. Ingest a small Sentinel-2 metadata scope around Madrid with progress.
+2. Search and sort locally, discover saved collections, and optionally view an online thumbnail.
+3. Inspect the Parquet writer/version metadata with PyArrow.
+4. Save a second adjacent scope and search their union.
+5. Query outside saved coverage through automatic API fallback.
+6. Extend a named scope with an incremental acquisition-window overlay.
+7. Compact files and preview/apply cleanup in the temporary demo directory.
+8. Search with `AsyncClient` and download the inventory as a ZIP.
+
+The example downloads metadata, not imagery. It needs internet for installation,
+API requests, and previews. No GPU or API key is needed for the default public
+catalog. Results may be empty or change with provider availability; the notebook
+checks per-catalog failures rather than treating every empty response as success.
+
+Files in Colab are temporary. Download the ZIP before ending the runtime.
+Incremental refresh is not a provider change feed: full refreshes remain necessary
+to reconcile deletions or changes outside the chosen acquisition window.
+
+Continue with the [GeoParquet guide](/docs/guides/geoparquet),
+[benchmark methodology](/docs/guides/benchmarks), or
+[version reporting](/docs/reference/troubleshooting#identify-your-version).

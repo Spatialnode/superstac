@@ -5,6 +5,7 @@ from ._superstac import (
     Client,
     Search,
     __version__,
+    geoparquet_available,
 )
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "AsyncClient",
     "Search",
     "__version__",
+    "geoparquet_available",
 ]

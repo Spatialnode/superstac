@@ -3519,6 +3519,7 @@ dependencies = [
  "superstac-config",
  "superstac-core",
  "superstac-engine",
+ "superstac-geoparquet",
  "superstac-search",
  "tokio",
 ]

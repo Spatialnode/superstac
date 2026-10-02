@@ -31,7 +31,7 @@ superstac search -c sentinel-2-l2a --id scene-id
 | `-l`, `--limit N` | Maximum items per catalog; default `10`. |
 | `--id ID` | Item ID; repeatable. |
 
-For negative coordinates, use `--bbox=-10,35,5,45` to avoid flag parsing ambiguity. `intersects` and `sortby` are not CLI options.
+For negative coordinates, use `--bbox=-10,35,5,45` to avoid flag parsing ambiguity. `intersects` is not a CLI option. Sorting accepts repeated `--sortby=-datetime` or `--sortby=eo:cloud_cover` flags.
 
 ## Collection discovery
 
@@ -60,3 +60,5 @@ The JSON search response contains `items` and `metadata`. Each item is wrapped w
 > The current tracing subscriber uses its default writer, which can put logs on standard output. For reliable JSON piping, set `logging_enabled: false` in your configuration before using `jq` or another parser. `--quiet` changes the level but does not disable all logs.
 
 `RUST_LOG` overrides the CLI-selected logging level when logging is enabled. Per-catalog failures may appear inside a successfully serialized response; check the metadata rather than relying only on the exit code.
+
+See [GeoParquet inventories](/docs/guides/geoparquet) for ingestion, backend selection, and dataset maintenance.

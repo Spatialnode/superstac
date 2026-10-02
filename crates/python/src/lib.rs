@@ -15,6 +15,7 @@ use pyo3::prelude::*;
 
 use crate::{{async_client::PyAsyncClient, sync_client::PyClient}, search::PySearch};
 mod search;
+mod geoparquet;
 mod shared;
 mod utils;
 mod runtime;
@@ -31,6 +32,7 @@ fn _superstac(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyAsyncClient>()?;
     m.add_class::<PySearch>()?;
     m.add("__version__", VERSION)?;
+    m.add("geoparquet_available", cfg!(feature = "geoparquet"))?;
     Ok(())
 }
 

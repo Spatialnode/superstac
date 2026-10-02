@@ -46,8 +46,8 @@ export default function Home() {
       <div className="landing" id="main-content">
         <section className="landing-hero">
           <div className="hero-copy">
-            <Link href="/docs/reference/status" className="release-pill">
-              <span className="tiny-dot" /> v0.2 · Alpha <ArrowUpRight size={12} />
+            <Link href="/docs/releases" className="release-pill">
+              <span className="tiny-dot" /> v0.3 · What’s new <ArrowUpRight size={12} />
             </Link>
             <h1>Many catalogs.<br /><span>One search.</span></h1>
             <p className="hero-description">Search across STAC catalogs through one interface, with Python, Rust, or the command line.</p>

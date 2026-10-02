@@ -11,7 +11,9 @@ use superstac_core::errors::SuperSTACError;
 use crate::runtime::block_on;
 use crate::search::PySearch;
 use crate::shared::{
-    Inner, add_catalog_impl, add_catalogs_impl, add_provider_impl, add_providers_impl,  build_inner, search_query_from_kwargs, update_catalog_impl, update_provider_impl, update_settings_impl
+    add_catalog_impl, add_catalogs_impl, add_provider_impl, add_providers_impl, build_inner,
+    search_query_from_kwargs, update_catalog_impl, update_provider_impl, update_settings_impl,
+    Inner,
 };
 use crate::utils::{err_to_py, parse_storage_kind, pythonize_obj};
 
@@ -31,7 +33,10 @@ impl PyClient {
         catalogs = None,
         providers = None,
         settings = None,
-        storage = "memory"
+        storage = "memory",
+        mode = "live",
+        dataset = None,
+        max_snapshot_age_seconds = 86400
     ))]
     fn new(
         config: Option<Bound<'_, PyDict>>,
@@ -39,9 +44,13 @@ impl PyClient {
         providers: Option<Bound<'_, PyAny>>,
         settings: Option<Bound<'_, PyAny>>,
         storage: &str,
+        mode: &str,
+        dataset: Option<&str>,
+        max_snapshot_age_seconds: u64,
     ) -> PyResult<Self> {
         Ok(Self {
-            inner: build_inner(config, catalogs, providers, settings, storage)?,
+            inner: build_inner(config, catalogs, providers, settings, storage)?
+                .with_search_backend(mode, dataset, max_snapshot_age_seconds)?,
         })
     }
 
@@ -49,17 +58,21 @@ impl PyClient {
     /// catalog id defaults to the first dot-separated label of the hostname.
     /// Calls `start()` before returning so the result is ready to `search()`.
     #[classmethod]
-    #[pyo3(signature = (url, *, id = None, storage = "memory"))]
+    #[pyo3(signature = (url, *, id = None, storage = "memory", mode = "live", dataset = None, max_snapshot_age_seconds = 86400))]
     fn open(
         _cls: &Bound<'_, PyType>,
         py: Python<'_>,
         url: &str,
         id: Option<&str>,
         storage: &str,
+        mode: &str,
+        dataset: Option<&str>,
+        max_snapshot_age_seconds: u64,
     ) -> PyResult<Self> {
         let inner = Inner::from_storage_kind(storage)?;
 
         inner.register_open_catalog(url, id)?;
+        let inner = inner.with_search_backend(mode, dataset, max_snapshot_age_seconds)?;
 
         let engine = Arc::clone(&inner.engine);
 
@@ -70,12 +83,23 @@ impl PyClient {
 
     /// Load catalogs/providers/settings from a `superstac.yml` file.
     #[classmethod]
-    #[pyo3(signature = (yaml_path, *, storage = "memory"))]
-    fn from_yaml(_cls: &Bound<'_, PyType>, yaml_path: &str, storage: &str) -> PyResult<Self> {
+    #[pyo3(signature = (yaml_path, *, storage = "memory", mode = "live", dataset = None, max_snapshot_age_seconds = 86400))]
+    fn from_yaml(
+        _cls: &Bound<'_, PyType>,
+        yaml_path: &str,
+        storage: &str,
+        mode: &str,
+        dataset: Option<&str>,
+        max_snapshot_age_seconds: u64,
+    ) -> PyResult<Self> {
         let backend_kind = parse_storage_kind(storage)?;
         let backend = init_from_yaml(backend_kind, yaml_path).map_err(err_to_py)?;
         Ok(Self {
-            inner: Inner::from_backend(backend),
+            inner: Inner::from_backend(backend).with_search_backend(
+                mode,
+                dataset,
+                max_snapshot_age_seconds,
+            )?,
         })
     }
 
@@ -320,19 +344,48 @@ impl PyClient {
         }
     }
 
+    /// Download a complete scoped metadata inventory. Progress callbacks receive dicts.
+    #[pyo3(signature = (catalog_id, output, *, progress = None, **kwargs))]
+    fn ingest(
+        &self,
+        py: Python<'_>,
+        catalog_id: &str,
+        output: &str,
+        progress: Option<Py<PyAny>>,
+        kwargs: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<Py<PyAny>> {
+        let job = crate::geoparquet::prepare(&self.inner, catalog_id, output, progress, kwargs)?;
+        let result = block_on(py, crate::geoparquet::run(job))?;
+        pythonize_obj(py, &result)
+    }
+
+    #[pyo3(signature = (dataset, *, apply = false))]
+    fn cleanup_dataset(&self, py: Python<'_>, dataset: String, apply: bool) -> PyResult<Py<PyAny>> {
+        let result = py.detach(move || crate::geoparquet::cleanup(&dataset, apply))?;
+        pythonize_obj(py, &result)
+    }
+
+    #[pyo3(signature = (dataset, *, items_per_file = 10000, max_dataset_mib = 1024))]
+    fn compact_dataset(
+        &self,
+        py: Python<'_>,
+        dataset: String,
+        items_per_file: usize,
+        max_dataset_mib: u64,
+    ) -> PyResult<Py<PyAny>> {
+        let result = py.detach(move || {
+            crate::geoparquet::compact(&dataset, items_per_file, max_dataset_mib)
+        })?;
+        pythonize_obj(py, &result)
+    }
+
     fn __repr__(&self) -> String {
         let storage = self.inner.storage.lock();
         format!(
             "SuperSTACSyncClient(catalogs={}, started={}, providers={})",
-                storage
-                .list_catalogs(None)
-                .map(|c| c.len())
-                .unwrap_or(0),
+            storage.list_catalogs(None).map(|c| c.len()).unwrap_or(0),
             self.inner.engine.started.load(Ordering::Relaxed),
-                storage
-                .list_providers(None)
-                .map(|p| p.len())
-                .unwrap_or(0)
+            storage.list_providers(None).map(|p| p.len()).unwrap_or(0)
         )
     }
 }

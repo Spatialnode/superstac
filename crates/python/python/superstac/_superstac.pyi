@@ -1,6 +1,7 @@
-from typing import Any, Iterator
+from typing import Any, Iterator, Callable
 
 __version__: str
+geoparquet_available: bool
 
 
 class Search:
@@ -22,6 +23,9 @@ class Client:
         providers: list[dict[str, Any]] | None = None,
         settings: dict[str, Any] | None = None,
         storage: str = "memory",
+        mode: str = "live",
+        dataset: str | None = None,
+        max_snapshot_age_seconds: int = 86400,
     ) -> None: ...
     @classmethod
     def open(
@@ -30,9 +34,16 @@ class Client:
         *,
         id: str | None = None,
         storage: str = "memory",
+        mode: str = "live",
+        dataset: str | None = None,
+        max_snapshot_age_seconds: int = 86400,
     ) -> "Client": ...
     @classmethod
-    def from_yaml(cls, yaml_path: str, *, storage: str = "memory") -> "Client": ...
+    def from_yaml(cls, yaml_path: str, *, storage: str = "memory", mode: str = "live", dataset: str | None = None, max_snapshot_age_seconds: int = 86400) -> "Client": ...
+
+    def ingest(self, catalog_id: str, output: str, *, progress: Callable[[dict[str, Any]], None] | None = None, collections: list[str] = ..., bbox: list[float] | None = None, datetime: str | None = None, name: str | None = None, resume: bool = False, incremental_since: str | None = None, page_size: int = 500, items_per_file: int = 10000, max_dataset_mib: int = 1024, timeout_seconds: int = 60, all: bool = False) -> dict[str, Any]: ...
+    def cleanup_dataset(self, dataset: str, *, apply: bool = False) -> dict[str, Any]: ...
+    def compact_dataset(self, dataset: str, *, items_per_file: int = 10000, max_dataset_mib: int = 1024) -> dict[str, Any]: ...
 
     # engine lifecycle
     def start(self) -> None: ...
@@ -84,6 +95,9 @@ class AsyncClient:
         providers: list[dict[str, Any]] | None = None,
         settings: dict[str, Any] | None = None,
         storage: str = "memory",
+        mode: str = "live",
+        dataset: str | None = None,
+        max_snapshot_age_seconds: int = 86400,
     ) -> None: ...
     @classmethod
     async def open(
@@ -92,11 +106,18 @@ class AsyncClient:
         *,
         id: str | None = None,
         storage: str = "memory",
+        mode: str = "live",
+        dataset: str | None = None,
+        max_snapshot_age_seconds: int = 86400,
     ) -> "AsyncClient": ...
     @classmethod
     def from_yaml(
-        cls, yaml_path: str, *, storage: str = "memory"
+        cls, yaml_path: str, *, storage: str = "memory", mode: str = "live", dataset: str | None = None, max_snapshot_age_seconds: int = 86400
     ) -> "AsyncClient": ...
+
+    async def ingest(self, catalog_id: str, output: str, *, progress: Callable[[dict[str, Any]], None] | None = None, collections: list[str] = ..., bbox: list[float] | None = None, datetime: str | None = None, name: str | None = None, resume: bool = False, incremental_since: str | None = None, page_size: int = 500, items_per_file: int = 10000, max_dataset_mib: int = 1024, timeout_seconds: int = 60, all: bool = False) -> dict[str, Any]: ...
+    async def cleanup_dataset(self, dataset: str, *, apply: bool = False) -> dict[str, Any]: ...
+    async def compact_dataset(self, dataset: str, *, items_per_file: int = 10000, max_dataset_mib: int = 1024) -> dict[str, Any]: ...
 
     # engine lifecycle
     async def start(self) -> None: ...

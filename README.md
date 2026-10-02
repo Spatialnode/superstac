@@ -24,9 +24,12 @@ normalized to canonical names — regardless of which catalog they came from.
 > **Status: alpha.** APIs and YAML schema are not yet stable. Pre-1.0; expect
 > breaking changes.
 
+**[What’s new in v0.3](https://spatialnode.com/superstac/docs/releases)** · [Try GeoParquet in Colab](https://colab.research.google.com/drive/1JIx8j0Vi7jypKe5Q6klgCzYQMFHMaKGc?usp=sharing) · [Local search benchmark](https://spatialnode.com/superstac/docs/guides/benchmarks)
+
 ## Features
 
 - **Federated search:** Query multiple STAC catalogs concurrently with spatial, temporal, collection, and item filters.
+- **Reusable satellite-data inventories:** Save metadata for your area of interest and explore it repeatedly without querying every provider again. Fall back to live catalogs when saved coverage is missing or stale.
 - **Collection discovery:** Find available collections and the catalogs that serve them.
 - **Consistent names:** Map provider-specific collection IDs and asset keys to canonical names through configurable aliases.
 - **Deduplicated results:** Merge items across catalogs by item ID, with source provenance available in Rust and CLI results.
@@ -69,6 +72,7 @@ cargo add superstac-search
 cargo add superstac-engine
 cargo add superstac-cli
 cargo add superstac-config
+cargo add superstac-geoparquet
 ```
 
 ### From source
@@ -106,7 +110,9 @@ superstac --json search -c landsat-c2-l2 -l 10 | jq '.metadata'
 superstac collections microsoft sentinel-2-l2a
 ```
 
-Run `superstac --help` for the full surface.
+Run `superstac --help` for the full surface. For saved metadata inventories, build
+with `--features geoparquet` and follow the [GeoParquet guide](crates/geoparquet/README.md).
+Published Python wheels include this backend.
 
 ## Configuration
 
@@ -178,10 +184,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 | [`superstac-core`](https://crates.io/crates/superstac-core) | domain models, errors, storage trait |
 | [`superstac-config`](https://crates.io/crates/superstac-config) | YAML config loading |
 | [`superstac-search`](https://crates.io/crates/superstac-search) | federated search logic |
+| [`superstac-geoparquet`](https://crates.io/crates/superstac-geoparquet) | Reusable satellite-data inventories for repeated searches |
 | [`superstac-engine`](https://crates.io/crates/superstac-engine) | runtime (health, introspection, search orchestration) |
 | [`superstac-cli`](https://crates.io/crates/superstac-cli) | the `superstac` binary |
 
 ## Logs and debugging
+
+Include `superstac --version` or Python’s `superstac.__version__` in bug reports.
+Search diagnostics also include `metadata.superstac_version`. Provider requests
+identify the library as `superstac/<version>` through the User-Agent header.
+New ingested and compacted Parquet files record the writer version in their footer.
+
 
 Logs flow through `tracing`. The default level comes from `settings.log_level`
 in your config; override at runtime:

@@ -4,7 +4,8 @@
     "overview",
     "notebook",
     "async",
-    "api"
+    "api",
+    "geoparquet-notebook"
   ],
   "defaultOpen": true
 }

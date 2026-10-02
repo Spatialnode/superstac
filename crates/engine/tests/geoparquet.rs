@@ -77,11 +77,11 @@ async fn snapshot_search_ignores_remote_health_and_inventory() {
     );
     assert!(response.metadata.unsupported_collections.is_empty());
     assert_eq!(response.items[0].item.id, "scene");
-    assert!(engine.list_collections().await.is_err());
+    assert_eq!(engine.list_collections().await.unwrap()[0].id, "actual");
     assert!(engine
         .describe_collection("snapshot", "actual")
         .await
-        .is_err());
+        .unwrap().is_some());
     engine.shutdown().await;
 }
 

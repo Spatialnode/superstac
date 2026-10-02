@@ -1,5 +1,9 @@
 [package]
 name = "superstac-geoparquet"
+description = "Scoped STAC GeoParquet ingestion, search, and dataset maintenance for SuperSTAC"
+readme = "README.md"
+keywords = ["stac", "geoparquet", "geospatial"]
+categories = ["science::geo"]
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

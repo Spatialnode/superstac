@@ -17,11 +17,7 @@ impl SearchAggregator {
         let flat: Vec<SearchItem> = results.into_iter().flatten().collect();
         let pre_dedup_count = flat.len();
 
-        let items = if deduplicate {
-            Self::dedup(flat)
-        } else {
-            flat
-        };
+        let items = if deduplicate { Self::dedup(flat) } else { flat };
 
         let total_items = items.len();
         let duplicates_removed = pre_dedup_count - total_items;
@@ -30,6 +26,7 @@ impl SearchAggregator {
         SearchResponse {
             items,
             metadata: SearchMetadata {
+                superstac_version: env!("CARGO_PKG_VERSION").to_owned(),
                 catalogs_queried,
                 catalogs_succeeded: catalogs_queried - catalogs_failed,
                 catalogs_failed,

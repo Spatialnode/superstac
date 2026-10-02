@@ -3,11 +3,12 @@ title: Status and limitations
 description: What the current alpha supports and what is still being built.
 ---
 
-SuperSTAC is a pre-1.0, MIT-licensed project. This documentation targets version 0.2.0. APIs and YAML shapes may change.
+SuperSTAC is a pre-1.0, MIT-licensed project. This documentation targets version 0.3.0. APIs and YAML shapes may change.
 
 ## Available
 
 - Python sync and async clients backed by Rust.
+- GeoParquet inventories, coverage-aware local search, incremental overlays, compaction and cleanup.
 - A Tokio-based Rust engine and command-line tool.
 - In-memory catalog and provider registration.
 - Collection discovery and source selection.
@@ -27,7 +28,7 @@ The package searches item metadata; it does not download, mosaic, render, or rep
 
 ## Current alpha behavior to account for
 
-YAML and Python dictionary configuration have different required fields. Python `matched()` counts returned records. Python item dictionaries omit per-item provenance wrappers. `sortby` is currently ignored by translation. Health monitors and global monitoring settings have limitations documented in [resilience](/docs/guides/resilience/).
+YAML and Python dictionary configuration have different required fields. Python `matched()` counts returned records. Python item dictionaries omit per-item provenance wrappers. `sortby` orders results per catalog; the merged response is not globally sorted. Health monitors and global monitoring settings have limitations documented in [resilience](/docs/guides/resilience/).
 
 These are implementation constraints, not promises about future releases. Track development in the [repository](https://github.com/spatialnode/superstac) and [changelog](https://github.com/spatialnode/superstac/blob/main/CHANGELOG.md).
 
