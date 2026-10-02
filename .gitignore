@@ -74,3 +74,4 @@ docs/_build/
 ideas/
 .env
 .env.local
+.pnpm-store/

@@ -1,13 +1,13 @@
 ---
 title: Local search benchmark
-description: Reproduce a selective GeoParquet metadata search and see where row-group pruning helps.
+description: How much does skipping irrelevant Parquet data help a local search?
 ---
-
-## Less metadata to decode
 
 For a selective time query over **100,000 synthetic STAC items**, local search took
 **4.2 ms with row-group pruning**, compared with **411.3 ms without it** in this run.
-Both paths used the same bounded decoder and returned identical records.
+Pruning means skipping blocks of data that cannot match the query. Both searches
+returned the same records. This compares two local scans, not local search against
+a provider API; downloading the inventory is excluded.
 
 ![Median search latency: 411.3 milliseconds without row-group pruning and 4.2 milliseconds with pruning, over 100,000 synthetic items.](../../../public/benchmarks/geoparquet-v0.3.svg)
 
@@ -26,18 +26,15 @@ The baseline decodes row groups sequentially until the result limit. The optimiz
 path consults Parquet statistics and skips groups that cannot match. The benchmark
 asserts that the returned IDs are identical on every repetition.
 
-## What this means for your workflow
+## When it helps
 
-Time-ordered metadata can make repeated, selective time searches much cheaper.
-This is useful when exploring an already saved inventory. It does **not** show
-that SuperSTAC is faster than a provider API: no remote API was measured, and
-initial ingestion time is excluded.
+Skipping data helps most when a query selects a small part of a time-ordered
+inventory. This synthetic dataset is a favorable case. Broader queries, larger
+records, and sorting take more work, so expect different timings on your own data.
 
-This fixture is a favorable pruning case, not a production Sentinel archive.
-Broad queries, complex geometry, large asset dictionaries, sorting, scope unions,
-and incremental overlays can cost more. Unions and overlays disable pruning until
-safe to filter without resurrecting old item versions; compacting an incremental
-scope resolves its overlays. Deduplication retains item keys in memory.
+Searches across multiple scopes or uncompacted incremental updates currently scan
+without pruning to handle duplicate records correctly. Compacting an updated scope
+lets it use pruning again. Deduplication also needs memory for the item IDs scanned.
 
 ## Reproduce it
 
