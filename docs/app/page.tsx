@@ -63,7 +63,7 @@ export default function Home() {
 
         <section className="start-section" aria-labelledby="benefits-title">
           <div className="section-intro">
-            <h2 id="benefits-title">From scattered catalogs to reusable inventories</h2>
+            <h2 id="benefits-title">Find imagery. Keep the metadata you need.</h2>
             <p>One search workflow for Python notebooks, Rust applications, and the command line.</p>
           </div>
           <div className="path-cards">
@@ -76,7 +76,7 @@ export default function Home() {
             <Link className="path-card" href="/docs/guides/geoparquet">
               <Layers className="path-icon" size={23} />
               <h3>Save once. Explore repeatedly.</h3>
-              <p>Build a GeoParquet inventory for your study area. Search saved metadata without fetching it again, and use automatic mode to query live APIs when local coverage is missing or stale.</p>
+              <p>Save your study-area metadata to GeoParquet and reuse it across searches. Automatic mode checks live catalogs when the saved data is too old or doesn’t cover your query.</p>
               <span className="path-link">Build your inventory <ArrowRight size={15} /></span>
             </Link>
             <Link className="path-card" href="/docs/start/quickstart">
@@ -90,19 +90,19 @@ export default function Home() {
 
         <section className="code-section" aria-labelledby="inventory-title">
           <div className="code-section-copy">
-            <h2 id="inventory-title">Build your satellite-data inventory.<br />Search it again and again.</h2>
+            <h2 id="inventory-title">Keep exploring the same study area.</h2>
             <p>Exploring the same region over multiple sessions? Save its catalog metadata to GeoParquet, then refine your searches locally. Scope ingestion by collection, area, and time so you only collect what you need.</p>
             <ul>
               <li><Layers size={18} /><span>Follow ingestion progress, set a storage limit, and resume interrupted work.</span></li>
               <li><Scan size={18} /><span>Search the saved coverage locally; let automatic mode fall back to live catalogs when needed.</span></li>
-              <li><GitMerge size={18} /><span>Update acquisition windows and compact your inventory as your project grows.</span></li>
+              <li><GitMerge size={18} /><span>Add recent dates and clean up old files as your project grows.</span></li>
             </ul>
             <p>Inventories store metadata. Imagery previews and downloads still use the provider’s assets.</p>
             <Link href="/docs/python/geoparquet-notebook" className="text-link">Try the GeoParquet notebook <ArrowRight size={15} /></Link>
           </div>
           <div className="code-section-copy">
-            <h3>See what local search can save</h3>
-            <p>Explore a reproducible benchmark of row-group pruning on a synthetic inventory, including its setup and limits.</p>
+            <h3>How fast is local search?</h3>
+            <p>Our benchmark measures how skipping irrelevant data speeds up a selective search over 100,000 synthetic items. See the results and run it yourself.</p>
             <Link href="/docs/guides/benchmarks" className="text-link">Explore the benchmark <ArrowRight size={15} /></Link>
           </div>
         </section>
