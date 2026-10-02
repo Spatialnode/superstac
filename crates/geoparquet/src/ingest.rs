@@ -21,6 +21,7 @@ use std::{
     collections::{BTreeMap, HashSet},
     fs::{self, File, OpenOptions},
     path::{Path, PathBuf},
+    sync::Arc,
     time::Duration,
 };
 use superstac_core::{errors::SuperSTACError, models::catalog::Catalog};
@@ -40,6 +41,8 @@ pub struct IngestOptions {
     /// Includes current, old, and incomplete generations under runs/. No eviction.
     pub max_dataset_bytes: Option<u64>,
     pub progress: Option<ProgressCallback>,
+    /// Re-fetch acquisition times since this RFC3339 timestamp and overlay an existing named scope.
+    pub incremental_since: Option<String>,
 }
 
 impl IngestOptions {
@@ -54,6 +57,7 @@ impl IngestOptions {
             name: None,
             max_dataset_bytes: Some(1024 * 1024 * 1024),
             progress: None,
+            incremental_since: None,
         }
     }
 }
@@ -76,6 +80,8 @@ struct Checkpoint {
     last_error: Option<String>,
     #[serde(default)]
     visited_requests: HashSet<String>,
+    #[serde(default)]
+    base_fingerprint: Option<String>,
 }
 
 /// Ingest or refresh one named scope, retaining other scopes for the catalog.
@@ -146,6 +152,30 @@ async fn ingest_inner(
         .valid()
         .map_err(error)?;
     scope.datetime = search.items.datetime.clone();
+    let mut request_search = search.clone();
+    if let Some(since) = &options.incremental_since {
+        if options.name.is_none() {
+            return Err(error("incremental refresh requires an explicit scope name"));
+        }
+        let since = chrono::DateTime::parse_from_rfc3339(since)
+            .map_err(error)?
+            .with_timezone(&Utc);
+        let (start, end) = scope
+            .datetime
+            .as_deref()
+            .map(stac::datetime::parse)
+            .transpose()
+            .map_err(error)?
+            .unwrap_or_default();
+        if start.is_some_and(|start| since < start) || end.is_some_and(|end| since > end) {
+            return Err(error("incremental since must lie within requested scope"));
+        }
+        request_search.items.datetime = Some(format!(
+            "{}/{}",
+            since.to_rfc3339(),
+            end.map(|e| e.to_rfc3339()).unwrap_or_else(|| "..".into())
+        ));
+    }
     let initial = PageRequest {
         url: UrlBuilder::new(&catalog.url)
             .map_err(error)?
@@ -153,7 +183,7 @@ async fn ingest_inner(
             .to_string(),
         method: "POST".into(),
         body: Some(
-            serde_json::to_value(search)
+            serde_json::to_value(request_search)
                 .map_err(error)?
                 .as_object()
                 .ok_or_else(|| error("invalid search request"))?
@@ -172,6 +202,9 @@ async fn ingest_inner(
         .map_err(error)?;
     lock.try_lock_exclusive()
         .map_err(|e| error(format!("dataset already being written or cannot lock: {e}")))?;
+    let lock = Arc::new(lock);
+    // Initialize the shared-reader lock so copied read-only datasets can be opened.
+    drop(crate::maintenance::lock(&root, ".readers.lock", false)?);
     fs::create_dir_all(root.join("checkpoints")).map_err(error)?;
     fs::create_dir_all(root.join("runs")).map_err(error)?;
     let manifest = if root.join("manifest.json").exists() {
@@ -196,6 +229,47 @@ async fn ingest_inner(
             })
         })
         .unwrap_or(default_name);
+    let base = if options.incremental_since.is_some() {
+        let base = existing
+            .and_then(|scopes| scopes.get(&name))
+            .ok_or_else(|| error("incremental refresh requires an existing named scope"))?;
+        let (old_start, old_end) = base
+            .scope
+            .datetime
+            .as_deref()
+            .map(stac::datetime::parse)
+            .transpose()
+            .map_err(error)?
+            .unwrap_or_default();
+        let (new_start, new_end) = scope
+            .datetime
+            .as_deref()
+            .map(stac::datetime::parse)
+            .transpose()
+            .map_err(error)?
+            .unwrap_or_default();
+        let since =
+            chrono::DateTime::parse_from_rfc3339(options.incremental_since.as_ref().unwrap())
+                .map_err(error)?
+                .with_timezone(&Utc);
+        if base.source_url != catalog.url
+            || base.scope.collections != scope.collections
+            || base.scope.bbox != scope.bbox
+            || old_start != new_start
+            || old_end.is_some_and(|old| since > old)
+            || new_end.is_some_and(|new| old_end.is_none_or(|old| new < old))
+        {
+            return Err(error("incremental refresh must preserve source, collections, bbox and start; overlap the old end and never shrink coverage"));
+        }
+        Some(base.clone())
+    } else {
+        None
+    };
+    let base_fingerprint = base
+        .as_ref()
+        .map(|base| serde_json::to_vec(base).map(|bytes| format!("{:x}", Sha256::digest(bytes))))
+        .transpose()
+        .map_err(error)?;
     let key = format!(
         "{:x}",
         Sha256::digest(format!("{}\0{name}", catalog.id).as_bytes())
@@ -220,6 +294,7 @@ async fn ingest_inner(
             || saved.snapshot.source_url != catalog.url
             || saved.snapshot.scope != scope
             || saved.initial != initial
+            || saved.base_fingerprint != base_fingerprint
         {
             return Err(error("checkpoint differs from this request; resume with the original scope and page size"));
         }
@@ -273,6 +348,7 @@ async fn ingest_inner(
                 started_at: Utc::now(),
                 completed_at: None,
                 complete: false,
+                overlays: options.incremental_since.is_some(),
                 pages: 0,
                 items: 0,
                 files: Vec::new(),
@@ -282,6 +358,7 @@ async fn ingest_inner(
             run: run.strip_prefix(&root).map_err(error)?.to_owned(),
             last_error: None,
             visited_requests: HashSet::new(),
+            base_fingerprint,
         }
     };
     progress.resume(&checkpoint.snapshot);
@@ -297,6 +374,7 @@ async fn ingest_inner(
         &checkpoint_path,
         &mut checkpoint,
         &options,
+        &lock,
         progress,
     )
     .await;
@@ -309,6 +387,13 @@ async fn ingest_inner(
             }
         }
         return Err(e);
+    }
+    if let Some(base) = base {
+        // Delta files precede older files so duplicate IDs resolve to the new item.
+        checkpoint.snapshot.files.extend(base.files);
+        checkpoint.snapshot.items += base.items;
+        // A delta does not revalidate old records: do not claim whole-scope freshness.
+        checkpoint.snapshot.started_at = base.started_at;
     }
     checkpoint.snapshot.complete = true;
     checkpoint.snapshot.completed_at = Some(Utc::now());
@@ -335,6 +420,7 @@ async fn download(
     checkpoint_path: &Path,
     state: &mut Checkpoint,
     options: &IngestOptions,
+    writer_lock: &Arc<File>,
     progress: &mut Progress,
 ) -> Result<(), SuperSTACError> {
     let mut buffer = Vec::new();
@@ -423,7 +509,9 @@ async fn download(
             let run = root.join(&state.run);
             let dataset_root = root.to_owned();
             progress.emit(IngestPhase::Writing, None);
+            let writer_lease = writer_lock.clone();
             let files = tokio::task::spawn_blocking(move || {
+                let _writer_lease = writer_lease;
                 write_files(&dataset_root, &run, rows, remaining_bytes)
             })
             .await
@@ -455,6 +543,9 @@ async fn fetch_page(
     for attempt in 0..3 {
         let mut builder = client.request(method.clone(), &request.url);
         for (key, value) in &request.headers {
+            if key.eq_ignore_ascii_case("user-agent") {
+                continue;
+            }
             builder = builder.header(key, value);
         }
         if let Some(body) = &request.body {
@@ -586,7 +677,7 @@ fn next_request(
     })
 }
 
-fn write_files(
+pub(crate) fn write_files(
     root: &Path,
     run: &Path,
     rows: Vec<Item>,
@@ -600,7 +691,8 @@ fn write_files(
             .push(item);
     }
     let mut files = Vec::new();
-    for (collection, items) in groups {
+    for (collection, mut items) in groups {
+        items.sort_by_key(|item| (item.properties.datetime, item.id.clone()));
         let directory = run.join(format!(
             "collection={}",
             collection
@@ -646,17 +738,41 @@ fn write_files(
             }
         }
         // Infer across the whole bounded file, preserving source-local properties.
-        stac::geoparquet::WriterBuilder::new(budget::BudgetWriter::new(
-            file.as_file(),
-            &mut remaining,
-        ))
-        .options(stac::geoarrow::Options {
-            drop_invalid_attributes: false,
-        })
-        .build(items)
-        .map_err(error)?
-        .finish()
+        let (state, batch) = stac::geoparquet::WriterState::new(
+            stac::geoarrow::Options {
+                drop_invalid_attributes: false,
+            },
+            items,
+        )
         .map_err(error)?;
+        let mut metadata = state.into_metadata().map_err(error)?;
+        metadata.push(parquet::format::KeyValue::new(
+            "superstac".to_owned(),
+            Some(
+                serde_json::json!({
+                    "version": env!("CARGO_PKG_VERSION"),
+                    "crate": "superstac-geoparquet",
+                    "written_at": Utc::now().to_rfc3339(),
+                })
+                .to_string(),
+            ),
+        ));
+        let defaults = stac::geoparquet::WriterOptions::default();
+        let mut properties = parquet::file::properties::WriterProperties::builder()
+            .set_max_row_group_size(1024)
+            .set_created_by(concat!("superstac/", env!("CARGO_PKG_VERSION")).to_owned())
+            .set_key_value_metadata(Some(metadata));
+        if let Some(compression) = defaults.compression {
+            properties = properties.set_compression(compression);
+        }
+        let mut writer = parquet::arrow::ArrowWriter::try_new(
+            budget::BudgetWriter::new(file.as_file(), &mut remaining),
+            batch.schema(),
+            Some(properties.build()),
+        )
+        .map_err(error)?;
+        writer.write(&batch).map_err(error)?;
+        writer.close().map_err(error)?;
         file.as_file().sync_all().map_err(error)?;
         let bytes = file.as_file().metadata().map_err(error)?.len();
         let (_, path) = file.keep().map_err(error)?;

@@ -28,9 +28,9 @@ The implemented method is `search.to_geojson()` (or `search.item_collection_as_d
 
 The limit is per catalog and bounded by `max_items_per_catalog`. Deduplication compares item IDs; it can collapse equal IDs even across different collections. Inspect `duplicates_removed` and try `deduplicate_items=False` if your sources reuse IDs.
 
-## Sorting or cloud-cover filters have no effect
+## Sorting and cloud-cover filters
 
-The current engine does not forward `sortby`, and does not implement a cloud-cover/CQL2 filter interface. Unsupported Python keyword arguments may be ignored. Use only [documented search fields](/docs/reference/search/).
+`sortby` is supported per catalog in v0.3; it does not globally sort the merged response. The engine does not implement a cloud-cover/CQL2 filter interface. Unsupported Python keyword arguments may be ignored. Use only [documented search fields](/docs/reference/search/).
 
 ## A catalog never recovers
 
@@ -38,7 +38,7 @@ Catalogs unhealthy at startup currently do not get a background monitor. Shut do
 
 ## JSON piping fails
 
-Set `logging_enabled: false` in YAML before piping CLI JSON. The current tracing writer can mix log output into stdout, and `--quiet` does not disable warnings.
+Use `--json` for machine-readable output. CLI logs and ingestion progress go to stderr; avoid merging stderr into stdout when piping JSON. `--quiet` does not disable warnings.
 
 ## Python cannot load the extension
 
@@ -47,3 +47,21 @@ Use Python 3.9+ and ensure the package is installed in the interpreter you are r
 ## Report a reproducible issue
 
 Include the package version or commit, Python/Rust version, operating system, a minimal configuration without credentials, the query, and failure metadata. Open an issue on [GitHub](https://github.com/spatialnode/superstac/issues).
+
+
+## Identify your version
+
+```sh
+superstac --version
+python -c "import superstac; print(superstac.__version__)"
+```
+
+Rust applications can report `superstac_engine::VERSION`. Search response metadata
+includes `superstac_version`, including searches with per-catalog failures.
+Provider requests use `User-Agent: superstac/<version>`. This identifies the
+library, not an individual user, and does not send telemetry to SuperSTAC.
+
+Newly ingested or compacted Parquet files record `created_by` and a JSON
+`superstac` metadata entry with their writer version and write time. Existing
+files are not changed until rewritten. Include that version when reporting a
+file-reading problem; it may differ from your currently installed version.

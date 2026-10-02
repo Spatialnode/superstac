@@ -7,6 +7,23 @@ releases.
 
 ## [Unreleased]
 
+### Added — v0.3.0
+- Optional Rust/CLI GeoParquet backend and GeoParquet-enabled Python wheels.
+- Scoped, named, resumable STAC metadata ingestion with progress and storage caps.
+- Snapshot and automatic API fallback modes, freshness checks, and gap-aware scope unions.
+- Per-catalog sorting, local collection summaries, row-group pruning, and a reproducible benchmark.
+- Explicit acquisition-window incremental overlays, atomic compaction, and cleanup with reader protection.
+- Sync/async Python ingestion, backend configuration, maintenance, and type hints.
+- Automatically versioned Parquet provenance and search diagnostics.
+- A GeoParquet Jupyter/Colab notebook, release highlights page, and documented local benchmark.
+
+### Changed — v0.3.0
+- Dataset manifests use version 2; legacy version-1 inventories remain readable.
+- Release publishing includes the GeoParquet crate before the engine; CI checks both feature modes.
+
+### Fixed — v0.3.0
+- Forward sort fields to live STAC searches instead of silently discarding them.
+
 ## [0.2.0] - 2026-09-27
 
 ### Added

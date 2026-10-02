@@ -43,6 +43,9 @@ pub struct Snapshot {
     pub completed_at: Option<DateTime<Utc>>,
     /// True means pagination exhausted for the scope, not a provider-wide archive.
     pub complete: bool,
+    /// Delta overlays require newest-first deduplication before filtering.
+    #[serde(default)]
+    pub overlays: bool,
     pub pages: u64,
     pub items: u64,
     pub files: Vec<DataFile>,

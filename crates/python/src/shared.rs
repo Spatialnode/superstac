@@ -5,6 +5,9 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 
+use crate::utils::{
+    depythonize_into, derive_id_from_url, err_to_py, parse_storage_kind, pythonize_obj,
+};
 use superstac_config::config::{CatalogConfig, CatalogProviderConfig};
 use superstac_core::{
     models::{
@@ -16,7 +19,6 @@ use superstac_core::{
 };
 use superstac_engine::{SharedStorage, SuperSTACEngine};
 use superstac_search::query::SearchQuery;
-use crate::utils::{err_to_py, parse_storage_kind, pythonize_obj, depythonize_into, derive_id_from_url};
 
 #[derive(Clone)]
 pub struct Inner {
@@ -36,6 +38,44 @@ impl Inner {
 
     pub fn from_storage_kind(kind: &str) -> PyResult<Self> {
         Ok(Self::from_backend(parse_storage_kind(kind)?.init()))
+    }
+
+    pub fn with_search_backend(
+        mut self,
+        mode: &str,
+        dataset: Option<&str>,
+        max_age: u64,
+    ) -> PyResult<Self> {
+        if mode == "live" && dataset.is_none() {
+            return Ok(self);
+        }
+        if !matches!(mode, "snapshot" | "auto") || dataset.is_none() {
+            return Err(PyValueError::new_err(
+                "mode must be live (without dataset), snapshot or auto (with dataset)",
+            ));
+        }
+        #[cfg(feature = "geoparquet")]
+        {
+            let root = dataset.unwrap();
+            self.engine = Arc::new(if mode == "snapshot" {
+                SuperSTACEngine::from_shared_dataset(self.storage.clone(), root)
+                    .map_err(err_to_py)?
+            } else {
+                SuperSTACEngine::from_shared_automatic(
+                    self.storage.clone(),
+                    root,
+                    std::time::Duration::from_secs(max_age),
+                )
+            });
+            Ok(self)
+        }
+        #[cfg(not(feature = "geoparquet"))]
+        {
+            let _ = (&mut self, max_age);
+            Err(PyValueError::new_err(
+                "rebuild superstac with the geoparquet feature",
+            ))
+        }
     }
 
     pub fn register_open_catalog(&self, url: &str, id: Option<&str>) -> PyResult<()> {
@@ -194,7 +234,6 @@ pub fn search_query_from_kwargs(kwargs: Option<&Bound<'_, PyDict>>) -> PyResult<
     depythonize_into(kw.as_any(), "search query")
 }
 
-
 #[allow(clippy::too_many_arguments)]
 pub fn build_inner(
     config: Option<Bound<'_, PyDict>>,
@@ -236,4 +275,3 @@ pub fn build_inner(
 
     Ok(inner)
 }
-

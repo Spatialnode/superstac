@@ -8,7 +8,7 @@ import urllib.request
 
 root = Path(__file__).resolve().parents[1]
 version = tomllib.loads((root / "Cargo.toml").read_text())["workspace"]["package"]["version"]
-for crate in ("core", "config", "search", "engine", "cli"):
+for crate in ("core", "config", "search", "geoparquet", "engine", "cli"):
     name = f"superstac-{crate}"
     request = urllib.request.Request(
         f"https://crates.io/api/v1/crates/{name}/{version}",

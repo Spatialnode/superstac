@@ -1,0 +1,16 @@
+{
+  "version": "0.3.0",
+  "date": "2026-10-02",
+  "hardware": "Apple M3 Pro, 36 GiB RAM",
+  "os": "macOS 15.5",
+  "rust": "1.88.0",
+  "profile": "release",
+  "fixture": "100000 time-ordered synthetic point STAC items, one collection, 1024-row groups",
+  "parquet_bytes": 858390,
+  "query": "20 latest acquisition-time records, no sort, one catalog",
+  "repetitions": 5,
+  "baseline_median_ms": 411.332,
+  "pruned_median_ms": 4.195,
+  "identical_results_asserted": true,
+  "limitations": "Local bounded scanner comparison; warm OS cache possible; no remote API baseline; minimal metadata, not production imagery or gigabyte archives."
+}

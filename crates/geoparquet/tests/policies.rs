@@ -60,6 +60,10 @@ fn server(responses: Vec<Value>) -> (String, std::thread::JoinHandle<()>) {
                 if let Some(end) = request.windows(4).position(|w| w == b"\r\n\r\n") {
                     let headers = String::from_utf8_lossy(&request[..end]);
                     assert!(headers.starts_with("POST /search "));
+                    assert!(headers.to_ascii_lowercase().contains(&format!(
+                        "user-agent: superstac/{}",
+                        env!("CARGO_PKG_VERSION")
+                    )));
                     let length: usize = headers
                         .lines()
                         .find_map(|line| {
@@ -133,6 +137,31 @@ async fn retains_scopes_refreshes_one_and_reports_durable_progress() {
     let manifest = DatasetManifest::read(dir.path()).unwrap();
     assert_eq!(manifest.version, 2);
     assert_eq!(manifest.catalogs["test"].len(), 2);
+    let path = dir
+        .path()
+        .join(&manifest.catalogs["test"]["scope-a"].files[0].path);
+    let reader = parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder::try_new(
+        File::open(path).unwrap(),
+    )
+    .unwrap();
+    let footer = reader.metadata().file_metadata();
+    assert_eq!(
+        footer.created_by(),
+        Some(concat!("superstac/", env!("CARGO_PKG_VERSION")))
+    );
+    let kv = footer.key_value_metadata().unwrap();
+    assert!(kv.iter().any(|v| v.key == "geo"));
+    assert!(kv.iter().any(|v| v.key == "stac-geoparquet"));
+    let producer: Value = serde_json::from_str(
+        kv.iter()
+            .find(|v| v.key == "superstac")
+            .unwrap()
+            .value
+            .as_ref()
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(producer["version"], env!("CARGO_PKG_VERSION"));
     let backend = GeoParquetBackend::from_dataset(dir.path()).unwrap();
     assert_eq!(
         backend
@@ -154,10 +183,14 @@ async fn retains_scopes_refreshes_one_and_reports_durable_progress() {
     );
     let mut union = query("a");
     union.collections.push("b".into());
-    assert!(backend
-        .search(&source, union, search_options())
-        .await
-        .is_err());
+    assert_eq!(
+        backend
+            .search(&source, union, search_options())
+            .await
+            .unwrap()
+            .len(),
+        2
+    );
     let events = events.lock().unwrap();
     assert!(events
         .iter()
@@ -181,6 +214,7 @@ fn local_snapshot(root: &std::path::Path, source: &Catalog) -> Snapshot {
         started_at: Utc::now(),
         completed_at: Some(Utc::now()),
         complete: true,
+        overlays: false,
         pages: 1,
         items: 1,
         files: vec![DataFile {
@@ -222,7 +256,7 @@ async fn auto_uses_fresh_scope_and_falls_back_for_stale_missing_or_broken_data()
     let backend = AutoBackend::new(
         dir.path().into(),
         Duration::from_secs(86400),
-        reqwest::Client::builder().no_proxy().build().unwrap(),
+        reqwest::Client::builder().no_proxy().user_agent(concat!("superstac/", env!("CARGO_PKG_VERSION"))).build().unwrap(),
     );
     assert_eq!(
         backend
@@ -236,7 +270,7 @@ async fn auto_uses_fresh_scope_and_falls_back_for_stale_missing_or_broken_data()
     let stale = AutoBackend::new(
         dir.path().into(),
         Duration::ZERO,
-        reqwest::Client::builder().no_proxy().build().unwrap(),
+        reqwest::Client::builder().no_proxy().user_agent(concat!("superstac/", env!("CARGO_PKG_VERSION"))).build().unwrap(),
     );
     assert_eq!(
         stale
@@ -332,5 +366,238 @@ async fn budget_failure_preserves_published_data_and_can_resume() {
             .item
             .id,
         "new"
+    );
+}
+
+#[tokio::test]
+async fn incremental_overlay_compaction_cleanup_and_reader_protection() {
+    let mut moved = item("same", "a");
+    moved
+        .set_geometry(Some(
+            serde_json::from_value(json!({"type":"Point","coordinates":[20,20]})).unwrap(),
+        ))
+        .unwrap();
+    let delta = json!({"type":"FeatureCollection","features":[moved,item("new","a")],"links":[]});
+    let first = json!({"type":"FeatureCollection","features":[item("same","a"),item("old","a")],"links":[]});
+    let (url, thread) = server(vec![first, delta]);
+    let source = catalog(&url);
+    let dir = tempfile::tempdir().unwrap();
+    let original = ingest_catalog(&source, ingest_options(dir.path(), "one", "a"))
+        .await
+        .unwrap();
+    let mut options = ingest_options(dir.path(), "one", "a");
+    options.incremental_since = Some("2025-01-01T00:00:00Z".into());
+    let refreshed = ingest_catalog(&source, options).await.unwrap();
+    thread.join().unwrap();
+    assert_eq!(original.started_at, refreshed.started_at);
+    assert!(refreshed.overlays);
+    let backend = GeoParquetBackend::from_dataset(dir.path()).unwrap();
+    let mut q = query("a");
+    q.bbox = Some(stac::Bbox::TwoDimensional([0., 0., 2., 2.]));
+    let result = backend.search(&source, q, search_options()).await.unwrap();
+    assert_eq!(result.len(), 2);
+    assert!(
+        !result.iter().any(|i| i.item.id == "same"),
+        "old moved item must not reappear"
+    );
+    let mut q = query("a");
+    q.sortby = Some(vec!["-id".into()]);
+    q.limit = Some(2);
+    let result = backend
+        .search(&source, q.clone(), search_options())
+        .await
+        .unwrap();
+    assert_eq!(
+        result
+            .iter()
+            .map(|i| i.item.id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["same", "old"]
+    );
+    let manifest =
+        superstac_geoparquet::maintenance::compact(dir.path(), 100, Some(1048576)).unwrap();
+    assert_eq!(manifest.catalogs["test"]["one"].items, 3);
+    assert!(!manifest.catalogs["test"]["one"].overlays);
+    assert!(superstac_geoparquet::maintenance::cleanup(dir.path(), true).is_err());
+    // Old readers remain usable until dropped.
+    assert_eq!(
+        backend
+            .search(&source, q.clone(), search_options())
+            .await
+            .unwrap()
+            .len(),
+        2
+    );
+    drop(backend);
+    let dry = superstac_geoparquet::maintenance::cleanup(dir.path(), false).unwrap();
+    assert!(dry.bytes > 0);
+    assert!(!dry.applied);
+    let applied = superstac_geoparquet::maintenance::cleanup(dir.path(), true).unwrap();
+    assert_eq!(applied.files, dry.files);
+    let backend = GeoParquetBackend::from_dataset(dir.path()).unwrap();
+    assert_eq!(
+        backend
+            .search(&source, q, search_options())
+            .await
+            .unwrap()
+            .len(),
+        2
+    );
+    let collections = backend.collections(&source).unwrap();
+    assert!(collections.contains_key("a"));
+}
+
+#[tokio::test]
+async fn temporal_union_requires_gap_free_coverage() {
+    let dir = tempfile::tempdir().unwrap();
+    let source = catalog("http://127.0.0.1:9");
+    let mut left = local_snapshot(dir.path(), &source);
+    left.name = "left".into();
+    left.scope.datetime = Some("2025-01-01T00:00:00Z/2025-01-15T00:00:00Z".into());
+    let mut right = left.clone();
+    right.name = "right".into();
+    right.scope.datetime = Some("2025-01-15T00:00:00Z/2025-02-01T00:00:00Z".into());
+    let mut manifest = DatasetManifest {
+        version: 2,
+        catalogs: BTreeMap::from([(
+            "test".into(),
+            BTreeMap::from([("left".into(), left), ("right".into(), right)]),
+        )]),
+    };
+    std::fs::write(
+        dir.path().join("manifest.json"),
+        serde_json::to_vec(&manifest).unwrap(),
+    )
+    .unwrap();
+    let mut q = query("a");
+    q.datetime = Some("2025-01-01T00:00:00Z/2025-02-01T00:00:00Z".into());
+    let backend = GeoParquetBackend::from_dataset(dir.path()).unwrap();
+    assert!(backend
+        .can_answer(&source, q.clone(), Duration::from_secs(86400))
+        .unwrap());
+    assert_eq!(
+        backend
+            .search(&source, q.clone(), search_options())
+            .await
+            .unwrap()
+            .len(),
+        1
+    );
+    manifest
+        .catalogs
+        .get_mut("test")
+        .unwrap()
+        .get_mut("right")
+        .unwrap()
+        .scope
+        .datetime = Some("2025-01-16T00:00:00Z/2025-02-01T00:00:00Z".into());
+    std::fs::write(
+        dir.path().join("manifest.json"),
+        serde_json::to_vec(&manifest).unwrap(),
+    )
+    .unwrap();
+    let backend = GeoParquetBackend::from_dataset(dir.path()).unwrap();
+    assert!(!backend
+        .can_answer(&source, q, Duration::from_secs(86400))
+        .unwrap());
+}
+
+#[tokio::test]
+async fn union_rejects_spatial_holes_and_unknown_collections() {
+    let dir = tempfile::tempdir().unwrap();
+    let source = catalog("http://127.0.0.1:9");
+    let mut a = local_snapshot(dir.path(), &source);
+    a.name = "a".into();
+    a.scope.bbox = Some(stac::Bbox::TwoDimensional([0., 0., 1., 1.]));
+    let mut b = a.clone();
+    b.name = "b".into();
+    b.scope.bbox = Some(stac::Bbox::TwoDimensional([1., 1., 2., 2.]));
+    let mut manifest = DatasetManifest {
+        version: 2,
+        catalogs: BTreeMap::from([(
+            "test".into(),
+            BTreeMap::from([("a".into(), a), ("b".into(), b)]),
+        )]),
+    };
+    std::fs::write(
+        dir.path().join("manifest.json"),
+        serde_json::to_vec(&manifest).unwrap(),
+    )
+    .unwrap();
+    let mut q = query("a");
+    q.bbox = Some(stac::Bbox::TwoDimensional([0., 0., 2., 2.]));
+    let backend = GeoParquetBackend::from_dataset(dir.path()).unwrap();
+    assert!(!backend
+        .can_answer(&source, q.clone(), Duration::from_secs(60))
+        .unwrap());
+    manifest
+        .catalogs
+        .get_mut("test")
+        .unwrap()
+        .get_mut("a")
+        .unwrap()
+        .scope
+        .bbox = Some(stac::Bbox::TwoDimensional([0., 0., 1., 2.]));
+    manifest
+        .catalogs
+        .get_mut("test")
+        .unwrap()
+        .get_mut("b")
+        .unwrap()
+        .scope
+        .bbox = Some(stac::Bbox::TwoDimensional([1., 0., 2., 2.]));
+    std::fs::write(
+        dir.path().join("manifest.json"),
+        serde_json::to_vec(&manifest).unwrap(),
+    )
+    .unwrap();
+    let backend = GeoParquetBackend::from_dataset(dir.path()).unwrap();
+    assert!(backend
+        .can_answer(&source, q.clone(), Duration::from_secs(60))
+        .unwrap());
+    q.collections.clear();
+    assert!(!backend
+        .can_answer(&source, q, Duration::from_secs(60))
+        .unwrap());
+}
+
+#[tokio::test]
+async fn maintenance_protects_checkpoints_and_failed_compaction_preserves_manifest() {
+    let (url, thread) = server(vec![page("old", "a")]);
+    let source = catalog(&url);
+    let dir = tempfile::tempdir().unwrap();
+    let snapshot = ingest_catalog(&source, ingest_options(dir.path(), "one", "a"))
+        .await
+        .unwrap();
+    thread.join().unwrap();
+    let before = std::fs::read(dir.path().join("manifest.json")).unwrap();
+    let bytes = snapshot.files.iter().map(|f| f.bytes).sum::<u64>();
+    assert!(superstac_geoparquet::maintenance::compact(dir.path(), 10, Some(bytes + 1)).is_err());
+    assert_eq!(
+        before,
+        std::fs::read(dir.path().join("manifest.json")).unwrap()
+    );
+    let run = dir.path().join("runs/checkpoint");
+    std::fs::create_dir(&run).unwrap();
+    let protected = run.join("protected.parquet");
+    std::fs::copy(dir.path().join(&snapshot.files[0].path), &protected).unwrap();
+    let mut partial = snapshot.clone();
+    partial.files[0].path = "runs/checkpoint/protected.parquet".into();
+    std::fs::write(
+        dir.path().join("checkpoints/interrupted.json"),
+        json!({"snapshot":partial}).to_string(),
+    )
+    .unwrap();
+    let orphan = run.join("orphan.parquet");
+    std::fs::copy(&protected, &orphan).unwrap();
+    let report = superstac_geoparquet::maintenance::cleanup(dir.path(), true).unwrap();
+    assert!(report
+        .files
+        .contains(&"runs/checkpoint/orphan.parquet".into()));
+    assert!(protected.exists());
+    assert!(!orphan.exists());
+    assert_eq!(
+        before,
+        std::fs::read(dir.path().join("manifest.json")).unwrap()
     );
 }

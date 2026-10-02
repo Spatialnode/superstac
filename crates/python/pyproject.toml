@@ -35,5 +35,5 @@ Changelog = "https://github.com/spatialnode/superstac/blob/main/CHANGELOG.md"
 # importable as `superstac._superstac` and re-exported by __init__.py.
 python-source = "python"
 module-name = "superstac._superstac"
-features = ["pyo3/extension-module"]
+features = ["pyo3/extension-module", "geoparquet"]
 

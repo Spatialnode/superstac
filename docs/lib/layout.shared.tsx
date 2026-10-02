@@ -7,6 +7,7 @@ export function baseOptions(): BaseLayoutProps {
     githubUrl: 'https://github.com/spatialnode/superstac',
     links: [
       { text: 'Documentation', url: '/docs' },
+      { text: 'What’s new', url: '/docs/releases' },
       { text: 'Python', url: '/docs/python/overview' },
       { text: 'Rust', url: '/docs/rust/overview' },
     ],

@@ -1,0 +1,58 @@
+---
+title: What’s new
+description: Release highlights, migration notes, and examples for SuperSTAC.
+---
+
+import { Cards, Card } from 'fumadocs-ui/components/card';
+
+## v0.3 — Reusable satellite metadata inventories
+
+**Build your satellite-data inventory. Search it again and again.**
+
+Save metadata for your area of interest, explore different dates and scenes, and
+reuse that inventory throughout your analysis without repeating every provider
+request. Auto mode queries live catalogs when saved coverage is missing or stale.
+Previews and imagery stay with the provider.
+
+- **GeoParquet in Python, Rust and the CLI:** scoped ingestion, named inventories,
+  progress callbacks, resumable downloads and storage budgets.
+- **Local or live search:** snapshot mode searches saved coverage; auto mode uses
+  fresh complete local coverage and falls back to provider APIs when needed.
+- **Maintain an inventory:** acquisition-window incremental refresh, atomic
+  compaction and explicit cleanup of retired files.
+- **Explore saved metadata:** gap-aware scope unions, per-catalog sorting,
+  collection summaries, and row-group pruning for selective searches.
+- **Easier support reports:** version information in search diagnostics and newly
+  written Parquet footers; provider requests identify the SuperSTAC version.
+
+<Cards>
+  <Card title="Try the GeoParquet notebook" description="Ingest, search, refresh, inspect metadata, and compact a small inventory." href="/docs/python/geoparquet-notebook" />
+  <Card title="See the benchmark" description="A reproducible comparison of local scans with and without row-group pruning." href="/docs/guides/benchmarks" />
+  <Card title="Read the GeoParquet guide" description="Coverage, freshness, Python APIs, and maintenance commands." href="/docs/guides/geoparquet" />
+</Cards>
+
+### Upgrade notes
+
+Python wheels include GeoParquet. Rust and CLI consumers opt in with the
+`geoparquet` feature; the new crate is named
+[`superstac-geoparquet`](https://crates.io/crates/superstac-geoparquet).
+Version-1 manifests remain readable and upgrade to version 2 on publication.
+Older builds cannot read the upgraded manifests.
+
+Incremental refresh overlays an acquisition-time window; it does not detect
+provider deletions or changes outside that window. Full refresh remains available.
+Auto searches do not automatically persist API results. Sorting is per catalog,
+not global across a federated response.
+
+## v0.2 — Python clients and documentation
+
+Released September 27, 2026. Introduced Rust-backed synchronous and asynchronous
+Python clients, native dictionary results, configuration and collection discovery,
+with multi-platform wheel packaging and the documentation website.
+
+The Python package replaced the legacy v0.1 alpha implementation; existing users
+should follow the current client API.
+
+See the [complete changelog](https://github.com/spatialnode/superstac/blob/main/CHANGELOG.md)
+and [published GitHub releases](https://github.com/spatialnode/superstac/releases)
+for the release history and availability.

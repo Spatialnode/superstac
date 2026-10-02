@@ -13,7 +13,7 @@ Python clients take keyword arguments. Rust uses `SearchQuery`. Both are transla
 | `intersects` | GeoJSON geometry dictionary, optional | Spatial geometry, not a Feature or FeatureCollection. |
 | `datetime` | String, optional | Datetime instant or interval passed to upstream catalogs. |
 | `limit` | Nonnegative integer, optional | Maximum collected items per catalog, default `10`; also capped by `max_items_per_catalog`. Prefer a positive value. |
-| `sortby` | List of strings, optional | Present in the query model but **not forwarded by the current translator**. Do not rely on it. |
+| `sortby` | List of strings, optional | Per-catalog ordering, e.g. `["-datetime"]`. Forwarded to live APIs and supported locally; no global federated ordering. |
 
 ## Spatial and temporal filtering
 

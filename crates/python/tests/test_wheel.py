@@ -16,6 +16,7 @@ class CatalogHandler(BaseHTTPRequestHandler):
         pass
 
     def do_HEAD(self):
+        assert self.headers.get("User-Agent") == f"superstac/{superstac.__version__}"
         self.send_response(200)
         self.end_headers()
 
@@ -24,6 +25,7 @@ class CatalogHandler(BaseHTTPRequestHandler):
         self.do_GET()
 
     def do_GET(self):
+        assert self.headers.get("User-Agent") == f"superstac/{superstac.__version__}"
         path = self.path.split("?", 1)[0]
         status = 200
         if path.endswith("/collections"):
@@ -88,6 +90,7 @@ class WheelTests(unittest.TestCase):
         self.assertEqual(result.to_geojson(), result.item_collection_as_dict())
         self.assertEqual(result.to_geojson()["type"], "FeatureCollection")
         self.assertEqual(result.metadata["catalogs_failed"], 0)
+        self.assertEqual(result.metadata["superstac_version"], superstac.__version__)
         self.assertEqual(result.metadata["catalogs_queried"], 2)
 
     def test_installed_metadata(self):
@@ -136,6 +139,54 @@ class WheelTests(unittest.TestCase):
             self.assertEqual(client.get_settings()["max_items_per_catalog"], 7)
         finally:
             client.shutdown()
+
+
+
+@unittest.skipUnless(getattr(superstac, "geoparquet_available", False), "GeoParquet feature disabled")
+class GeoParquetWheelTests(unittest.TestCase):
+    setUpClass = WheelTests.__dict__["setUpClass"]
+    tearDownClass = WheelTests.__dict__["tearDownClass"]
+    catalogs = WheelTests.catalogs
+    client = WheelTests.client
+    def test_snapshot_ingest_progress_sort_discovery_and_maintenance(self):
+        import tempfile
+        import gc
+        with tempfile.TemporaryDirectory() as root:
+            client = self.client(ids=("first",))
+            events = []
+            snapshot = client.ingest("first", root, collections=["test-scenes"], name="one", progress=events.append)
+            self.assertTrue(snapshot["complete"])
+            self.assertEqual(events[-1]["phase"], "completed")
+            local = Client(catalogs=self.catalogs("first"), mode="snapshot", dataset=root)
+            self.assertEqual([i["id"] for i in local.search(collections=["test-scenes"], sortby=["-id"], limit=1).items()], ["shared"])
+            self.assertEqual(local.list_collections()[0]["id"], "test-scenes")
+            self.assertEqual(local.get_collection("test-scenes")["id"], "test-scenes")
+            auto = Client(catalogs=self.catalogs("first"), mode="auto", dataset=root)
+            self.assertEqual(len(auto.search(collections=["test-scenes"])), 2)
+            client.compact_dataset(root)
+            with self.assertRaises(Exception):
+                client.cleanup_dataset(root, apply=True)
+            del local
+            gc.collect()
+            self.assertGreater(client.cleanup_dataset(root)["bytes"], 0)
+            self.assertTrue(client.cleanup_dataset(root, apply=True)["applied"])
+            client.shutdown()
+            auto.shutdown()
+
+    def test_async_ingest_and_snapshot(self):
+        import tempfile
+        async def run(root):
+            client = self.client(AsyncClient, ids=("first",))
+            events = []
+            saved = await client.ingest("first", root, collections=["test-scenes"], name="one", progress=events.append)
+            self.assertTrue(saved["complete"])
+            local = AsyncClient(catalogs=self.catalogs("first"), mode="snapshot", dataset=root)
+            self.assertEqual(len(await local.search(collections=["test-scenes"])), 2)
+            self.assertEqual((await local.list_collections())[0]["id"], "test-scenes")
+            await local.shutdown()
+            await client.shutdown()
+        with tempfile.TemporaryDirectory() as root:
+            asyncio.run(run(root))
 
 
 if __name__ == "__main__":

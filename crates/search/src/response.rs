@@ -21,6 +21,9 @@ pub struct SearchItem {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchMetadata {
+    /// Producer version for support reports. Older serialized responses omit it.
+    #[serde(default)]
+    pub superstac_version: String,
     pub catalogs_queried: usize,
     pub catalogs_succeeded: usize,
     pub catalogs_failed: usize,

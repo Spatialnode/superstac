@@ -29,3 +29,14 @@ pub trait SearchBackend: Send + Sync {
         options: BackendSearchOptions,
     ) -> BoxFuture<'a, Result<Vec<SearchItem>, SuperSTACError>>;
 }
+
+impl<T: SearchBackend + ?Sized> SearchBackend for std::sync::Arc<T> {
+    fn search<'a>(
+        &'a self,
+        catalog: &'a Catalog,
+        query: SearchQuery,
+        options: BackendSearchOptions,
+    ) -> BoxFuture<'a, Result<Vec<SearchItem>, SuperSTACError>> {
+        (**self).search(catalog, query, options)
+    }
+}

@@ -137,3 +137,40 @@ client = AsyncClient.from_yaml("superstac.yml")     # async
 
 ## License
 MIT.
+
+## GeoParquet inventories (v0.3)
+
+Wheels include GeoParquet support (`superstac.geoparquet_available`). Both clients
+accept `mode="snapshot"` or `mode="auto"`, `dataset="./data"`, and
+`max_snapshot_age_seconds=86400`, including through `from_yaml()` and `open()`.
+The default is `mode="live"` without a dataset.
+
+```python
+from superstac import Client
+
+client = Client.from_yaml("superstac.yml")
+client.ingest("earth-search", "./data", name="madrid",
+              collections=["sentinel-2-l2a"],
+              bbox=[-3.8, 40.3, -3.6, 40.5],
+              datetime="2025-02-01/2025-02-08",
+              progress=lambda event: print(event["phase"], event["items_saved"]))
+local = Client.from_yaml("superstac.yml", mode="snapshot", dataset="./data")
+result = local.search(collections=["sentinel-2-l2a"],
+                      bbox=[-3.8, 40.3, -3.6, 40.5],
+                      datetime="2025-02-01/2025-02-08", sortby=["-datetime"])
+```
+
+`AsyncClient.ingest`, `compact_dataset`, and `cleanup_dataset` are awaitable.
+Use `incremental_since="2025-02-05T00:00:00Z"` with the same named scope to overlay
+an acquisition-time window. This does not detect deletions or changes outside the
+window; periodic full refreshes remain necessary. Auto mode falls back to live
+APIs when complete fresh local coverage is unavailable, and does not persist live
+results. Previews and imagery remain remote.
+
+Compaction publishes new files; cleanup defaults to a preview:
+`client.cleanup_dataset("./data")`. Pass `apply=True` to remove retired files
+once snapshot clients have been released. `shutdown()` stops monitoring but does
+not release the snapshot reader lock while the client remains alive.
+
+See the [GeoParquet guide](https://spatialnode.com/superstac/docs/guides/geoparquet)
+for scope coverage, progress, storage budgets, and maintenance semantics.

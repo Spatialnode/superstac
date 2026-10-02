@@ -152,7 +152,7 @@ async fn rejects_invalid_queries_and_corrupt_files() {
     q.datetime = Some("invalid".into());
     assert!(backend.search(&catalog, q, options()).await.is_err());
     let mut q = query();
-    q.sortby = Some(vec!["datetime".into()]);
+    q.sortby = Some(vec!["-".into()]);
     assert!(backend
         .search(&catalog, q, options())
         .await

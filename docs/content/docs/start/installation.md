@@ -41,7 +41,7 @@ cargo add superstac-core superstac-config superstac-search superstac-engine
 cargo add tokio --features macros,rt-multi-thread
 ```
 
-These docs target SuperSTAC 0.2. See the [Rust guide](/docs/rust/overview/).
+These docs target SuperSTAC 0.3. See the [Rust guide](/docs/rust/overview/).
 
 ## Command-line tool
 

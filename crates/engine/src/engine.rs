@@ -13,12 +13,12 @@ use crate::{
     health::HealthManager,
     types::SharedStorage,
 };
+use std::time::Duration;
 use superstac_core::{
     errors::SuperSTACError,
     models::catalog::{Catalog, CatalogFilters},
     storages::factory::StorageBackend,
 };
-use std::time::Duration;
 
 use superstac_search::{
     executor::SearchExecutor,
@@ -42,6 +42,8 @@ pub struct SuperSTACEngine {
     executor: SearchExecutor,
     snapshot_catalog_ids: Option<HashSet<String>>,
     auto_search: bool,
+    #[cfg(feature = "geoparquet")]
+    local_backend: Option<Arc<superstac_geoparquet::GeoParquetBackend>>,
     pub started: AtomicBool,
 }
 
@@ -75,6 +77,8 @@ impl SuperSTACEngine {
             executor: SearchExecutor::new(client),
             snapshot_catalog_ids: None,
             auto_search: false,
+            #[cfg(feature = "geoparquet")]
+            local_backend: None,
             started: AtomicBool::new(false),
         }
     }
@@ -101,7 +105,9 @@ impl SuperSTACEngine {
         let ids = paths.keys().cloned().collect();
         let backend = superstac_geoparquet::GeoParquetBackend::new(paths)?;
         let mut engine = Self::from_shared(storage);
-        engine.executor = SearchExecutor::with_backend(Box::new(backend));
+        let backend = Arc::new(backend);
+        engine.executor = SearchExecutor::with_backend(Box::new(backend.clone()));
+        engine.local_backend = Some(backend);
         engine.health_manager = None;
         engine.snapshot_catalog_ids = Some(ids);
         Ok(engine)
@@ -114,13 +120,23 @@ impl SuperSTACEngine {
         storage: Box<dyn StorageBackend + Send + Sync>,
         root: impl AsRef<std::path::Path>,
     ) -> Result<Self, SuperSTACError> {
+        Self::from_shared_dataset(Arc::new(Mutex::new(storage)), root)
+    }
+
+    #[cfg(feature = "geoparquet")]
+    pub fn from_shared_dataset(
+        storage: SharedStorage,
+        root: impl AsRef<std::path::Path>,
+    ) -> Result<Self, SuperSTACError> {
         let backend = superstac_geoparquet::GeoParquetBackend::from_dataset(root)?;
         for id in backend.catalog_ids() {
-            storage.get_catalog(id)?;
+            storage.lock().get_catalog(id)?;
         }
         let ids = backend.catalog_ids().cloned().collect();
-        let mut engine = Self::new(storage);
-        engine.executor = SearchExecutor::with_backend(Box::new(backend));
+        let mut engine = Self::from_shared(storage);
+        let backend = Arc::new(backend);
+        engine.executor = SearchExecutor::with_backend(Box::new(backend.clone()));
+        engine.local_backend = Some(backend);
         engine.health_manager = None;
         engine.snapshot_catalog_ids = Some(ids);
         Ok(engine)
@@ -134,21 +150,53 @@ impl SuperSTACEngine {
         root: impl Into<std::path::PathBuf>,
         max_snapshot_age: Duration,
     ) -> Self {
-        let mut engine = Self::new(storage);
-        let backend = superstac_geoparquet::auto::AutoBackend::new(root.into(), max_snapshot_age, engine.client.clone());
+        Self::from_shared_automatic(Arc::new(Mutex::new(storage)), root, max_snapshot_age)
+    }
+
+    #[cfg(feature = "geoparquet")]
+    pub fn from_shared_automatic(
+        storage: SharedStorage,
+        root: impl Into<std::path::PathBuf>,
+        max_snapshot_age: Duration,
+    ) -> Self {
+        let mut engine = Self::from_shared(storage);
+        let backend = superstac_geoparquet::auto::AutoBackend::new(
+            root.into(),
+            max_snapshot_age,
+            engine.client.clone(),
+        );
         engine.executor = SearchExecutor::with_backend(Box::new(backend));
         engine.health_manager = None;
         engine.auto_search = true;
         engine
     }
 
-    fn require_remote_discovery(&self) -> Result<(), SuperSTACError> {
-        if self.snapshot_catalog_ids.is_some() || self.auto_search {
-            return Err(SuperSTACError::SearchFailed(
-                "collection discovery is not yet supported in snapshot or auto mode".into(),
-            ));
+    async fn discovery_catalogs(&self) -> Result<Vec<Catalog>, SuperSTACError> {
+        self.ensure_started().await?;
+        let mut catalogs = self.storage.lock().list_catalogs(None)?;
+        #[cfg(feature = "geoparquet")]
+        if let Some(backend) = &self.local_backend {
+            catalogs.retain(|c| {
+                self.snapshot_catalog_ids
+                    .as_ref()
+                    .is_some_and(|ids| ids.contains(&c.id))
+            });
+            for catalog in &mut catalogs {
+                let backend = backend.clone();
+                let copy = catalog.clone();
+                let collections = tokio::task::spawn_blocking(move || backend.collections(&copy))
+                    .await
+                    .map_err(|e| SuperSTACError::SearchFailed(e.to_string()))??;
+                catalog.supported_collections = Some(collections.into_keys().collect());
+            }
         }
-        Ok(())
+        if self.auto_search {
+            for catalog in &mut catalogs {
+                catalog.supported_collections =
+                    Some(capabilities::fetch_supported_collections(&self.client, catalog).await?);
+            }
+        }
+        Ok(catalogs)
     }
 
     /// Run health checks against all catalogs, then introspect `/collections`
@@ -198,7 +246,7 @@ impl SuperSTACEngine {
         self.started.store(false, Ordering::Relaxed);
     }
 
-    /// Run health checks against every catalog, update storage with results. Then update the `supported_collections` sets for any newly-healthy catalogs. 
+    /// Run health checks against every catalog, update storage with results. Then update the `supported_collections` sets for any newly-healthy catalogs.
     async fn introspect_capabilities(&self) -> Result<(), SuperSTACError> {
         let healthy_catalogs = {
             let storage = self.storage.lock();
@@ -217,9 +265,7 @@ impl SuperSTACEngine {
                         "introspected /collections"
                     );
                     let mut storage = self.storage.lock();
-                    if let Err(e) =
-                        storage.update_supported_collections(&catalog.id, Some(set))
-                    {
+                    if let Err(e) = storage.update_supported_collections(&catalog.id, Some(set)) {
                         tracing::warn!(
                             catalog = %catalog.id,
                             error = %e,
@@ -253,7 +299,6 @@ impl SuperSTACEngine {
     /// Federated search. Applies source selection (filter catalogs that
     /// can't possibly serve the requested collections), then fans out.
     pub async fn search(&self, query: SearchQuery) -> Result<SearchResponse, SuperSTACError> {
-        
         self.ensure_started().await?;
 
         let (candidate_catalogs, options) = {
@@ -271,7 +316,9 @@ impl SuperSTACEngine {
                 catalogs
             } else if self.auto_search {
                 let mut catalogs = storage.list_catalogs(None)?;
-                for catalog in &mut catalogs { catalog.supported_collections = None; }
+                for catalog in &mut catalogs {
+                    catalog.supported_collections = None;
+                }
                 catalogs
             } else if let Some(true) = settings.search_healthy_catalogs_only {
                 storage.list_catalogs(Some(CatalogFilters {
@@ -320,14 +367,13 @@ impl SuperSTACEngine {
             .into_iter()
             .filter(|c| c.supports_any_of(&query.collections))
             .collect();
-        
 
         // Perform the federated search across the selected catalogs.
         let mut response = self
             .executor
             .federated_search(catalogs, query, options)
             .await?;
-        
+
         response.metadata.unsupported_collections = unsupported;
 
         Ok(response)
@@ -336,12 +382,7 @@ impl SuperSTACEngine {
     /// Aggregated view: every collection ID known across healthy catalogs,
     /// with the catalogs that serve each.
     pub async fn list_collections(&self) -> Result<Vec<CollectionAvailability>, SuperSTACError> {
-        self.require_remote_discovery()?;
-        self.ensure_started().await?;
-        let catalogs = {
-            let storage = self.storage.lock();
-            storage.list_catalogs(None)?
-        };
+        let catalogs = self.discovery_catalogs().await?;
         Ok(discovery::aggregate_collections(&catalogs))
     }
 
@@ -351,12 +392,7 @@ impl SuperSTACEngine {
         &self,
         collection_id: &str,
     ) -> Result<Vec<String>, SuperSTACError> {
-        self.require_remote_discovery()?;
-        self.ensure_started().await?;
-        let catalogs = {
-            let storage = self.storage.lock();
-            storage.list_catalogs(None)?
-        };
+        let catalogs = self.discovery_catalogs().await?;
         Ok(discovery::catalogs_supporting(&catalogs, collection_id))
     }
 
@@ -365,12 +401,7 @@ impl SuperSTACEngine {
     pub async fn collections_by_catalog(
         &self,
     ) -> Result<HashMap<String, Vec<String>>, SuperSTACError> {
-        self.require_remote_discovery()?;
-        self.ensure_started().await?;
-        let catalogs = {
-            let storage = self.storage.lock();
-            storage.list_catalogs(None)?
-        };
+        let catalogs = self.discovery_catalogs().await?;
         Ok(discovery::collections_by_catalog(&catalogs))
     }
 
@@ -383,7 +414,6 @@ impl SuperSTACEngine {
         catalog_id: &str,
         collection_id: &str,
     ) -> Result<Option<stac::Collection>, SuperSTACError> {
-        self.require_remote_discovery()?;
         self.ensure_started().await?;
 
         let catalog = {
@@ -391,11 +421,21 @@ impl SuperSTACEngine {
             storage.get_catalog(catalog_id)?.clone()
         };
 
+        #[cfg(feature = "geoparquet")]
+        if let Some(backend) = &self.local_backend {
+            let backend = backend.clone();
+            let id = collection_id.to_owned();
+            return tokio::task::spawn_blocking(move || {
+                backend.collections(&catalog).map(|mut c| c.remove(&id))
+            })
+            .await
+            .map_err(|e| SuperSTACError::SearchFailed(e.to_string()))?;
+        }
+
         let local_id = catalog.resolve_collection(collection_id).to_string();
 
-        let stac_client =
-            stac_io::api::Client::with_client(self.client.clone(), &catalog.url)
-                .map_err(|e| SuperSTACError::SearchFailed(format!("stac client init: {}", e)))?;
+        let stac_client = stac_io::api::Client::with_client(self.client.clone(), &catalog.url)
+            .map_err(|e| SuperSTACError::SearchFailed(format!("stac client init: {}", e)))?;
 
         stac_client
             .collection(&local_id)

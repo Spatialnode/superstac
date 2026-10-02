@@ -17,6 +17,10 @@ pub use types::SharedStorage;
 #[cfg(feature = "geoparquet")]
 pub use superstac_geoparquet::{
     ingest::{ingest_catalog, IngestOptions},
+    maintenance::{cleanup as cleanup_dataset, compact as compact_dataset, CleanupReport},
     manifest::{DatasetManifest, IngestScope, Snapshot},
     progress::{IngestPhase, IngestProgress, ProgressCallback},
 };
+
+/// Version of the SuperSTAC engine in this build.
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");

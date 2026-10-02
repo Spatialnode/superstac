@@ -1,20 +1,20 @@
-use std::sync::Arc;
 use std::sync::atomic::Ordering;
+use std::sync::Arc;
 
 use pyo3::exceptions::{PyKeyError, PyRuntimeError};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyType};
 
-
 use superstac_config::init_from_yaml;
 
+use crate::runtime::into_py;
 use crate::search::PySearch;
 use crate::shared::{
-    Inner, add_catalog_impl, add_catalogs_impl, add_provider_impl, add_providers_impl,  build_inner, search_query_from_kwargs, update_catalog_impl, update_provider_impl, update_settings_impl
+    add_catalog_impl, add_catalogs_impl, add_provider_impl, add_providers_impl, build_inner,
+    search_query_from_kwargs, update_catalog_impl, update_provider_impl, update_settings_impl,
+    Inner,
 };
 use crate::utils::{err_to_py, parse_storage_kind, pythonize_obj};
-use crate::runtime::into_py;
-
 
 #[pyclass(name = "AsyncClient", module = "superstac._superstac")]
 pub struct PyAsyncClient {
@@ -32,7 +32,10 @@ impl PyAsyncClient {
         catalogs = None,
         providers = None,
         settings = None,
-        storage = "memory"
+        storage = "memory",
+        mode = "live",
+        dataset = None,
+        max_snapshot_age_seconds = 86400
     ))]
     fn new(
         config: Option<Bound<'_, PyDict>>,
@@ -40,32 +43,33 @@ impl PyAsyncClient {
         providers: Option<Bound<'_, PyAny>>,
         settings: Option<Bound<'_, PyAny>>,
         storage: &str,
+        mode: &str,
+        dataset: Option<&str>,
+        max_snapshot_age_seconds: u64,
     ) -> PyResult<Self> {
         Ok(Self {
-            inner: build_inner(
-                config,
-                catalogs,
-                providers,
-                settings,
-                storage,
-            )?,
+            inner: build_inner(config, catalogs, providers, settings, storage)?
+                .with_search_backend(mode, dataset, max_snapshot_age_seconds)?,
         })
     }
-    
 
     /// pystac-client compat: connect to a single STAC catalog at `url`.
     /// Async: returns a coroutine that resolves to a fully-started client.
     #[classmethod]
-    #[pyo3(signature = (url, *, id = None, storage = "memory"))]
+    #[pyo3(signature = (url, *, id = None, storage = "memory", mode = "live", dataset = None, max_snapshot_age_seconds = 86400))]
     pub fn open<'py>(
         _cls: &Bound<'_, PyType>,
         py: Python<'py>,
         url: &str,
         id: Option<&str>,
         storage: &str,
+        mode: &str,
+        dataset: Option<&str>,
+        max_snapshot_age_seconds: u64,
     ) -> PyResult<Bound<'py, PyAny>> {
         let inner = Inner::from_storage_kind(storage)?;
         inner.register_open_catalog(url, id)?;
+        let inner = inner.with_search_backend(mode, dataset, max_snapshot_age_seconds)?;
         let engine = Arc::clone(&inner.engine);
         into_py(py, async move {
             engine.start().await.map_err(err_to_py)?;
@@ -74,16 +78,26 @@ impl PyAsyncClient {
     }
 
     #[classmethod]
-    #[pyo3(signature = (yaml_path, *, storage = "memory"))]
-    pub fn from_yaml(_cls: &Bound<'_, PyType>, yaml_path: &str, storage: &str) -> PyResult<Self> {
+    #[pyo3(signature = (yaml_path, *, storage = "memory", mode = "live", dataset = None, max_snapshot_age_seconds = 86400))]
+    pub fn from_yaml(
+        _cls: &Bound<'_, PyType>,
+        yaml_path: &str,
+        storage: &str,
+        mode: &str,
+        dataset: Option<&str>,
+        max_snapshot_age_seconds: u64,
+    ) -> PyResult<Self> {
         let backend_kind = parse_storage_kind(storage)?;
         let backend = init_from_yaml(backend_kind, yaml_path).map_err(err_to_py)?;
         Ok(Self {
-            inner: Inner::from_backend(backend),
+            inner: Inner::from_backend(backend).with_search_backend(
+                mode,
+                dataset,
+                max_snapshot_age_seconds,
+            )?,
         })
     }
 
-  
     fn start<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let engine = Arc::clone(&self.inner.engine);
         into_py(py, async move { engine.start().await.map_err(err_to_py) })
@@ -97,7 +111,6 @@ impl PyAsyncClient {
         })
     }
 
- 
     #[pyo3(signature = (catalog, *, provider = None))]
     fn add_catalog(
         &self,
@@ -203,7 +216,15 @@ impl PyAsyncClient {
         let engine = Arc::clone(&self.inner.engine);
         into_py(py, async move {
             let resp = engine.search(query).await.map_err(err_to_py)?;
-            Python::attach(|py| Py::new(py, PySearch { response: resp, cached_items: None }))
+            Python::attach(|py| {
+                Py::new(
+                    py,
+                    PySearch {
+                        response: resp,
+                        cached_items: None,
+                    },
+                )
+            })
         })
     }
 
@@ -309,19 +330,63 @@ impl PyAsyncClient {
         })
     }
 
+    #[pyo3(signature = (catalog_id, output, *, progress = None, **kwargs))]
+    fn ingest<'py>(
+        &self,
+        py: Python<'py>,
+        catalog_id: &str,
+        output: &str,
+        progress: Option<Py<PyAny>>,
+        kwargs: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let job = crate::geoparquet::prepare(&self.inner, catalog_id, output, progress, kwargs)?;
+        into_py(py, async move {
+            let result = crate::geoparquet::run(job).await?;
+            Python::attach(|py| pythonize_obj(py, &result))
+        })
+    }
+
+    #[pyo3(signature = (dataset, *, apply = false))]
+    fn cleanup_dataset<'py>(
+        &self,
+        py: Python<'py>,
+        dataset: String,
+        apply: bool,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        into_py(py, async move {
+            let result =
+                tokio::task::spawn_blocking(move || crate::geoparquet::cleanup(&dataset, apply))
+                    .await
+                    .map_err(|e| PyRuntimeError::new_err(e.to_string()))??;
+            Python::attach(|py| pythonize_obj(py, &result))
+        })
+    }
+
+    #[pyo3(signature = (dataset, *, items_per_file = 10000, max_dataset_mib = 1024))]
+    fn compact_dataset<'py>(
+        &self,
+        py: Python<'py>,
+        dataset: String,
+        items_per_file: usize,
+        max_dataset_mib: u64,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        into_py(py, async move {
+            let result = tokio::task::spawn_blocking(move || {
+                crate::geoparquet::compact(&dataset, items_per_file, max_dataset_mib)
+            })
+            .await
+            .map_err(|e| PyRuntimeError::new_err(e.to_string()))??;
+            Python::attach(|py| pythonize_obj(py, &result))
+        })
+    }
+
     fn __repr__(&self) -> String {
         let storage = self.inner.storage.lock();
         format!(
             "SuperSTACAsyncClient(catalogs={}, started={}, providers={})",
-                storage
-                .list_catalogs(None)
-                .map(|c| c.len())
-                .unwrap_or(0),
+            storage.list_catalogs(None).map(|c| c.len()).unwrap_or(0),
             self.inner.engine.started.load(Ordering::Relaxed),
-                storage
-                .list_providers(None)
-                .map(|p| p.len())
-                .unwrap_or(0)
+            storage.list_providers(None).map(|p| p.len()).unwrap_or(0)
         )
     }
 }

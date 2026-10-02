@@ -1,4 +1,7 @@
-# SuperSTAC GeoParquet
+---
+title: GeoParquet inventories
+description: Save the metadata for your area of interest and explore it repeatedly without querying every provider again.
+---
 
 **Build your satellite-data inventory. Search it again and again.**
 
@@ -263,9 +266,7 @@ Run the reproducible synthetic benchmark without downloading provider data:
 
 ```sh
 cargo test -p superstac-geoparquet --release benchmark_scoped_search -- --ignored --nocapture
-
-SUPERSTAC_BENCH_ITEMS=1000000 \
-  cargo test -p superstac-geoparquet --release benchmark_scoped_search -- --ignored --nocapture
+SUPERSTAC_BENCH_ITEMS=1000000 cargo test -p superstac-geoparquet --release benchmark_scoped_search -- --ignored --nocapture
 ```
 
 It compares the same bounded scanner with and without row-group pruning, verifies
