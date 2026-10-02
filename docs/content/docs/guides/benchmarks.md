@@ -9,7 +9,7 @@ For a selective time query over **100,000 synthetic STAC items**, local search t
 **4.2 ms with row-group pruning**, compared with **411.3 ms without it** in this run.
 Both paths used the same bounded decoder and returned identical records.
 
-![Median search latency: 411.3 milliseconds without row-group pruning and 4.2 milliseconds with pruning, over 100,000 synthetic items.](/superstac/benchmarks/geoparquet-v0.3.svg)
+![Median search latency: 411.3 milliseconds without row-group pruning and 4.2 milliseconds with pruning, over 100,000 synthetic items.](../../../public/benchmarks/geoparquet-v0.3.svg)
 
 | Measurement | Value |
 | --- | --- |
