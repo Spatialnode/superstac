@@ -22,6 +22,7 @@ Last updated: October 2, 2026
 - [ ] Add explicit preferred-catalog ordering and failover between providers. Improve recovery of catalogs unavailable at startup. Health checks, retries, concurrent search and snapshot-to-API fallback already exist.
 - [ ] Implement SQLite persistence for catalog registration, provider configuration and settings. 
 - [ ] Expose resumable federated pagination and bounded/lazy result iteration across Python, Rust and the CLI. Provider pagination is already followed internally, but callers currently receive materialized, capped results rather than a federated cursor or lazy stream.
+- [ ] API
 
 ## Long term
 
