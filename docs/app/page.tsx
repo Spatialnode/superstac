@@ -8,7 +8,7 @@ import { PoweredBySpatialnode } from '@/components/powered-by-spatialnode';
 import type { Metadata } from 'next';
 
 const socialTitle = 'SuperSTAC — Many catalogs. One search.';
-const socialDescription = 'Find satellite imagery across multiple sources with one search.';
+const socialDescription = 'Find satellite imagery across catalogs, combine results, and save study-area metadata for repeated searches with fewer API requests.';
 const socialImage = {
   url: 'https://spatialnode.com/superstac/superstac-og.png',
   width: 1200,
@@ -17,6 +17,7 @@ const socialImage = {
 };
 
 export const metadata: Metadata = {
+  description: socialDescription,
   alternates: { canonical: '/superstac' },
   openGraph: {
     type: 'website',
@@ -50,7 +51,7 @@ export default function Home() {
               <span className="tiny-dot" /> v0.3 · What’s new <ArrowUpRight size={12} />
             </Link>
             <h1>Many catalogs.<br /><span>One search.</span></h1>
-            <p className="hero-description">Search across STAC catalogs through one interface, with Python, Rust, or the command line.</p>
+            <p className="hero-description">Find satellite imagery across providers with one query. Combine the results, save the metadata you need, and explore it again with fewer API requests.</p>
             <div className="hero-actions">
               <Link href="/docs/start/quickstart" className="button-primary">Quickstart <ArrowRight size={16} /></Link>
               <Link href="/docs/start/installation" className="button-secondary"><BookOpen size={16} /> Installation</Link>
@@ -58,6 +59,52 @@ export default function Home() {
             <div className="hero-install"><span aria-hidden="true">$</span><code>pip install superstac</code></div>
           </div>
           <FederationMap />
+        </section>
+
+        <section className="start-section" aria-labelledby="benefits-title">
+          <div className="section-intro">
+            <h2 id="benefits-title">From scattered catalogs to reusable inventories</h2>
+            <p>One search workflow for Python notebooks, Rust applications, and the command line.</p>
+          </div>
+          <div className="path-cards">
+            <Link className="path-card" href="/docs/concepts/federation">
+              <Scan className="path-icon" size={23} />
+              <h3>Search across providers</h3>
+              <p>Query relevant catalogs concurrently and receive combined results, with visibility into which sources responded or failed.</p>
+              <span className="path-link">How federation works <ArrowRight size={15} /></span>
+            </Link>
+            <Link className="path-card" href="/docs/guides/geoparquet">
+              <Layers className="path-icon" size={23} />
+              <h3>Save once. Explore repeatedly.</h3>
+              <p>Build a GeoParquet inventory for your study area. Search saved metadata without fetching it again, and use automatic mode to query live APIs when local coverage is missing or stale.</p>
+              <span className="path-link">Build your inventory <ArrowRight size={15} /></span>
+            </Link>
+            <Link className="path-card" href="/docs/start/quickstart">
+              <GitMerge className="path-icon" size={23} />
+              <h3>Spend less time combining results</h3>
+              <p>Configure collection and asset aliases, remove duplicate item IDs, and pass STAC metadata into your existing analysis workflow.</p>
+              <span className="path-link">Run your first search <ArrowRight size={15} /></span>
+            </Link>
+          </div>
+        </section>
+
+        <section className="code-section" aria-labelledby="inventory-title">
+          <div className="code-section-copy">
+            <h2 id="inventory-title">Build your satellite-data inventory.<br />Search it again and again.</h2>
+            <p>Exploring the same region over multiple sessions? Save its catalog metadata to GeoParquet, then refine your searches locally. Scope ingestion by collection, area, and time so you only collect what you need.</p>
+            <ul>
+              <li><Layers size={18} /><span>Follow ingestion progress, set a storage limit, and resume interrupted work.</span></li>
+              <li><Scan size={18} /><span>Search the saved coverage locally; let automatic mode fall back to live catalogs when needed.</span></li>
+              <li><GitMerge size={18} /><span>Update acquisition windows and compact your inventory as your project grows.</span></li>
+            </ul>
+            <p>Inventories store metadata. Imagery previews and downloads still use the provider’s assets.</p>
+            <Link href="/docs/python/geoparquet-notebook" className="text-link">Try the GeoParquet notebook <ArrowRight size={15} /></Link>
+          </div>
+          <div className="code-section-copy">
+            <h3>See what local search can save</h3>
+            <p>Explore a reproducible benchmark of row-group pruning on a synthetic inventory, including its setup and limits.</p>
+            <Link href="/docs/guides/benchmarks" className="text-link">Explore the benchmark <ArrowRight size={15} /></Link>
+          </div>
         </section>
 
         <section className="start-section" aria-labelledby="choose-title">
