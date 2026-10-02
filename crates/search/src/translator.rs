@@ -3,7 +3,7 @@ use crate::query::SearchQuery;
 
 /// Convert a SuperSTAC `SearchQuery` into the typed `stac::api::Search` the
 /// stac-io client expects. Field-by-field copy with no canonicalization —
-/// alias rewriting happens upstream in the executor.
+/// alias rewriting happens upstream in the STAC API backend.
 pub fn to_stac_search(
     query: SearchQuery,
 ) -> Search {

@@ -5,7 +5,7 @@ use std::sync::{
     Arc,
 };
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::{
     capabilities,
@@ -40,6 +40,8 @@ pub struct SuperSTACEngine {
     client: Client,
     health_manager: Option<HealthManager>,
     executor: SearchExecutor,
+    snapshot_catalog_ids: Option<HashSet<String>>,
+    auto_search: bool,
     pub started: AtomicBool,
 }
 
@@ -71,14 +73,94 @@ impl SuperSTACEngine {
             client: client.clone(),
             health_manager: Some(HealthManager::new(client.clone())),
             executor: SearchExecutor::new(client),
+            snapshot_catalog_ids: None,
+            auto_search: false,
             started: AtomicBool::new(false),
         }
     }
 
+    /// Search only the supplied local snapshots. IDs must already exist in storage.
+    /// Provider health, API introspection, and cached remote collection inventories
+    /// are ignored. Collection discovery is not yet available in snapshot mode.
+    #[cfg(feature = "geoparquet")]
+    pub fn from_geoparquet(
+        storage: Box<dyn StorageBackend + Send + Sync>,
+        paths: HashMap<String, std::path::PathBuf>,
+    ) -> Result<Self, SuperSTACError> {
+        Self::from_shared_geoparquet(Arc::new(Mutex::new(storage)), paths)
+    }
+
+    #[cfg(feature = "geoparquet")]
+    pub fn from_shared_geoparquet(
+        storage: SharedStorage,
+        paths: HashMap<String, std::path::PathBuf>,
+    ) -> Result<Self, SuperSTACError> {
+        for id in paths.keys() {
+            storage.lock().get_catalog(id)?;
+        }
+        let ids = paths.keys().cloned().collect();
+        let backend = superstac_geoparquet::GeoParquetBackend::new(paths)?;
+        let mut engine = Self::from_shared(storage);
+        engine.executor = SearchExecutor::with_backend(Box::new(backend));
+        engine.health_manager = None;
+        engine.snapshot_catalog_ids = Some(ids);
+        Ok(engine)
+    }
+
+    /// Open completed catalog snapshots from a managed dataset. Search coverage
+    /// is checked against the manifest; no provider checks or requests occur.
+    #[cfg(feature = "geoparquet")]
+    pub fn from_dataset(
+        storage: Box<dyn StorageBackend + Send + Sync>,
+        root: impl AsRef<std::path::Path>,
+    ) -> Result<Self, SuperSTACError> {
+        let backend = superstac_geoparquet::GeoParquetBackend::from_dataset(root)?;
+        for id in backend.catalog_ids() {
+            storage.get_catalog(id)?;
+        }
+        let ids = backend.catalog_ids().cloned().collect();
+        let mut engine = Self::new(storage);
+        engine.executor = SearchExecutor::with_backend(Box::new(backend));
+        engine.health_manager = None;
+        engine.snapshot_catalog_ids = Some(ids);
+        Ok(engine)
+    }
+
+    /// Prefer one fresh covering snapshot per catalog, otherwise query its API.
+    /// This mode never writes datasets and skips provider monitoring/introspection.
+    #[cfg(feature = "geoparquet")]
+    pub fn automatic(
+        storage: Box<dyn StorageBackend + Send + Sync>,
+        root: impl Into<std::path::PathBuf>,
+        max_snapshot_age: Duration,
+    ) -> Self {
+        let mut engine = Self::new(storage);
+        let backend = superstac_geoparquet::auto::AutoBackend::new(root.into(), max_snapshot_age, engine.client.clone());
+        engine.executor = SearchExecutor::with_backend(Box::new(backend));
+        engine.health_manager = None;
+        engine.auto_search = true;
+        engine
+    }
+
+    fn require_remote_discovery(&self) -> Result<(), SuperSTACError> {
+        if self.snapshot_catalog_ids.is_some() || self.auto_search {
+            return Err(SuperSTACError::SearchFailed(
+                "collection discovery is not yet supported in snapshot or auto mode".into(),
+            ));
+        }
+        Ok(())
+    }
+
     /// Run health checks against all catalogs, then introspect `/collections`
-    /// on the healthy ones. Idempotent — safe to call multiple times.
+    /// on the healthy ones. Snapshot mode skips all provider access.
+    /// Idempotent — safe to call multiple times.
     pub async fn start(&self) -> Result<(), SuperSTACError> {
         if self.started.load(Ordering::Relaxed) {
+            return Ok(());
+        }
+
+        if self.snapshot_catalog_ids.is_some() || self.auto_search {
+            self.started.store(true, Ordering::Relaxed);
             return Ok(());
         }
 
@@ -178,7 +260,20 @@ impl SuperSTACEngine {
             let storage = self.storage.lock();
             let settings = storage.get_settings();
 
-            let catalogs = if let Some(true) = settings.search_healthy_catalogs_only {
+            let catalogs = if let Some(ids) = &self.snapshot_catalog_ids {
+                let mut catalogs = Vec::new();
+                for id in ids {
+                    let mut catalog = storage.get_catalog(id)?.clone();
+                    // A remote inventory may be stale or differ from the snapshot.
+                    catalog.supported_collections = None;
+                    catalogs.push(catalog);
+                }
+                catalogs
+            } else if self.auto_search {
+                let mut catalogs = storage.list_catalogs(None)?;
+                for catalog in &mut catalogs { catalog.supported_collections = None; }
+                catalogs
+            } else if let Some(true) = settings.search_healthy_catalogs_only {
                 storage.list_catalogs(Some(CatalogFilters {
                     available: Some(true),
                     ..CatalogFilters::default()
@@ -195,7 +290,11 @@ impl SuperSTACEngine {
                     settings.per_catalog_timeout_seconds.unwrap_or(30),
                 ),
                 retry: RetryPolicy {
-                    max_attempts: settings.max_retry_attempts.unwrap_or(2),
+                    max_attempts: if self.snapshot_catalog_ids.is_some() {
+                        1
+                    } else {
+                        settings.max_retry_attempts.unwrap_or(2)
+                    },
                     initial_backoff: Duration::from_millis(
                         settings.retry_initial_backoff_ms.unwrap_or(100),
                     ),
@@ -237,6 +336,7 @@ impl SuperSTACEngine {
     /// Aggregated view: every collection ID known across healthy catalogs,
     /// with the catalogs that serve each.
     pub async fn list_collections(&self) -> Result<Vec<CollectionAvailability>, SuperSTACError> {
+        self.require_remote_discovery()?;
         self.ensure_started().await?;
         let catalogs = {
             let storage = self.storage.lock();
@@ -251,6 +351,7 @@ impl SuperSTACEngine {
         &self,
         collection_id: &str,
     ) -> Result<Vec<String>, SuperSTACError> {
+        self.require_remote_discovery()?;
         self.ensure_started().await?;
         let catalogs = {
             let storage = self.storage.lock();
@@ -264,6 +365,7 @@ impl SuperSTACEngine {
     pub async fn collections_by_catalog(
         &self,
     ) -> Result<HashMap<String, Vec<String>>, SuperSTACError> {
+        self.require_remote_discovery()?;
         self.ensure_started().await?;
         let catalogs = {
             let storage = self.storage.lock();
@@ -281,6 +383,7 @@ impl SuperSTACEngine {
         catalog_id: &str,
         collection_id: &str,
     ) -> Result<Option<stac::Collection>, SuperSTACError> {
+        self.require_remote_discovery()?;
         self.ensure_started().await?;
 
         let catalog = {

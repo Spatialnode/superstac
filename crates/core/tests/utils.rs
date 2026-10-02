@@ -2,7 +2,7 @@ use chrono::Utc;
 
 use superstac_core::{
     errors::{ValidationError},
-    utils::{get_date_time, parse_url, validate_identifier},
+    utils::{get_datetime_utc, parse_url, validate_identifier},
 };
 
 #[test]
@@ -18,12 +18,12 @@ fn parse_url_accepts_valid_url() {
 }
 
 #[test]
-fn get_date_time_returns_current_datetime() {
+fn get_datetime_utc_returns_current_datetime() {
     // Between the function call there'll be some milliseconds delay.
     // Using 5ms as a safe value.
 
     let now = Utc::now();
-    let dt = get_date_time();
+    let dt = get_datetime_utc();
 
     let diff = (dt - now).num_milliseconds().abs();
     assert!(diff < 5);

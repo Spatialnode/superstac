@@ -8,7 +8,7 @@ use superstac_core::{
         provider::{ CatalogProvider, CatalogProviderFilters, CatalogProviderUpdate},
         settings::{LogLevel, Settings, SettingsUpdate},
     },
-    utils::get_date_time,
+    utils::get_datetime_utc,
 };
 
 ////////////////////////######################################## UTILS ########################################////////////////////////////////////////////////////
@@ -113,7 +113,7 @@ fn memory_store_creates_catalog_with_defaults_when_provider_and_settings_are_not
     assert_eq!(catalog.id, catalog_id.to_string());
     assert_eq!(
         catalog.created_at.unwrap().date_naive(),
-        get_date_time().date_naive()
+        get_datetime_utc().date_naive()
     );
     assert_eq!(catalog.provider, None);
 
@@ -369,7 +369,7 @@ fn memory_store_returns_matched_catalogs_when_filtered() {
     assert_eq!(filtered_catalogs.first().unwrap().url, catalog1.url);
 
     // Filter by string search in the title. For this add another catalog with a different name/description
-    let creation_date = get_date_time();
+    let creation_date = get_datetime_utc();
 
     let catalog3 = store
         .create_catalog(
@@ -749,7 +749,7 @@ fn memory_store_creates_provider_with_defaults_when_catalog_ids_and_settings_are
     assert_eq!(provider.id, provider_id.to_string());
     assert_eq!(
         provider.created_at.unwrap().date_naive(),
-        get_date_time().date_naive()
+        get_datetime_utc().date_naive()
     );
     assert_eq!(provider.catalog_ids, None);
 
@@ -1063,7 +1063,7 @@ fn memory_store_returns_matched_providers_when_filtered() {
     // );
 
     // Filter by string search in the title. For this add another catalog with a different name/description
-    let creation_date = get_date_time();
+    let creation_date = get_datetime_utc();
 
     let provider3 = store
         .create_provider(

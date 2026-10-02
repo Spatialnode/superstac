@@ -6,7 +6,7 @@ use superstac_core::{errors::{SuperSTACError, ValidationError}, models::{
     catalog::{Catalog, CatalogSettings, get_default_health_status},
     provider::CatalogProvider,
     settings::Settings,
-}, utils::{get_date_time, parse_url, validate_identifier}};
+}, utils::{get_datetime_utc, parse_url, validate_identifier}};
 
 
 /// Configuration for SuperSTAC.
@@ -63,7 +63,7 @@ impl TryFrom<CatalogConfig> for Catalog {
             collection_aliases: cfg.collection_aliases.unwrap_or_default(),
             asset_aliases: cfg.asset_aliases.unwrap_or_default(),
             supported_collections: None,
-            created_at: Some(get_date_time()),
+            created_at: Some(get_datetime_utc()),
             updated_at: None,
         })
     }
@@ -118,7 +118,7 @@ impl TryFrom<CatalogProviderConfig> for CatalogProvider {
             logo_url,
             // stac_version: Some(stac_version),
             catalog_ids: None,
-            created_at: Some(get_date_time()),
+            created_at: Some(get_datetime_utc()),
             updated_at: None,
         })
     }

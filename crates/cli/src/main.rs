@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 use stac::Bbox;
 use superstac_config::init_from_yaml;
 use superstac_core::models::{settings::LogLevel, settings::Settings, storage::Storage};
@@ -16,6 +16,23 @@ struct Cli {
     /// Path to the SuperSTAC config file.
     #[arg(long, default_value = "superstac.yml", global = true)]
     config: PathBuf,
+
+    /// Search local snapshots only. Repeat for each catalog: --geoparquet ID=PATH.
+    /// Paths are relative to the working directory; requires the geoparquet feature.
+    #[arg(long, global = true, value_name = "CATALOG=PATH", value_parser = parse_snapshot)]
+    geoparquet: Vec<(String, PathBuf)>,
+
+    /// Search a managed dataset's completed snapshots (requires geoparquet).
+    #[arg(long, global = true, conflicts_with = "geoparquet")]
+    dataset: Option<PathBuf>,
+
+    /// Choose live APIs, local snapshots, or fresh-snapshot-first routing.
+    #[arg(long, global = true, value_enum)]
+    mode: Option<SearchMode>,
+
+    /// Maximum snapshot age in auto mode, measured from ingestion start (default 86400).
+    #[arg(long, global = true)]
+    max_snapshot_age_seconds: Option<u64>,
 
     /// Increase log verbosity (debug-level).
     #[arg(short, long, global = true, conflicts_with = "quiet")]
@@ -33,10 +50,16 @@ struct Cli {
     command: Command,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
+enum SearchMode { Live, Snapshot, Auto }
+
 #[derive(Subcommand)]
 enum Command {
     /// Federated search across catalogs.
     Search(SearchArgs),
+
+    /// Fetch a scoped API snapshot into a managed GeoParquet dataset.
+    Ingest(IngestArgs),
 
     /// Inspect available collections.
     Collections(CollectionsArgs),
@@ -67,6 +90,47 @@ struct SearchArgs {
 }
 
 #[derive(Args)]
+#[command(group(clap::ArgGroup::new("scope").required(true).multiple(true)
+    .args(["collections", "datetime", "bbox", "all"])))]
+struct IngestArgs {
+    /// Configured catalog IDs to ingest sequentially. Repeatable.
+    #[arg(long = "catalog", required = true)]
+    catalogs: Vec<String>,
+    /// Canonical collection IDs. Repeatable.
+    #[arg(long = "collection")]
+    collections: Vec<String>,
+    #[arg(long)]
+    datetime: Option<String>,
+    #[arg(long, value_parser = parse_bbox)]
+    bbox: Option<Bbox>,
+    /// Explicitly ingest the entire catalog instead of a filtered scope.
+    #[arg(long, conflicts_with_all = ["collections", "datetime", "bbox"])]
+    all: bool,
+    #[arg(long, default_value = "./data")]
+    output: PathBuf,
+    /// Scope name; refreshes only this name. Omit to derive it from coverage.
+    #[arg(long)]
+    name: Option<String>,
+    /// Retained Parquet budget including old/partial generations; 0 disables the cap.
+    #[arg(long, default_value_t = 1024)]
+    max_dataset_mib: u64,
+    /// Disable progress output.
+    #[arg(long)]
+    no_progress: bool,
+    /// Resume with the same catalogs, scope, name, and page size.
+    #[arg(long)]
+    resume: bool,
+    /// Server page size; all pages are fetched regardless of search limits.
+    #[arg(long, default_value_t = 500)]
+    page_size: usize,
+    /// Approximate rows per file, flushed at page boundaries and split by collection.
+    #[arg(long, default_value_t = 10_000)]
+    items_per_file: usize,
+    #[arg(long, default_value_t = 60)]
+    timeout_seconds: u64,
+}
+
+#[derive(Args)]
 struct CollectionsArgs {
     /// Catalog ID. If omitted, lists all collections across catalogs.
     catalog: Option<String>,
@@ -94,7 +158,72 @@ async fn main() -> ExitCode {
         println!("loaded {} catalogs", n);
     }
 
-    let engine = SuperSTACEngine::new(db);
+    if let Command::Ingest(args) = &cli.command {
+        if cli.dataset.is_some() || !cli.geoparquet.is_empty() || cli.mode.is_some() || cli.max_snapshot_age_seconds.is_some() {
+            eprintln!("error: ingest reads APIs; use --output to choose its dataset destination");
+            return ExitCode::FAILURE;
+        }
+        return run_ingest(db.as_ref(), args, cli.json, cli.quiet).await;
+    }
+
+    let mode = cli.mode.unwrap_or_else(|| {
+        if cli.dataset.is_some() || !cli.geoparquet.is_empty() { SearchMode::Snapshot } else { SearchMode::Live }
+    });
+    if (mode == SearchMode::Auto && (cli.dataset.is_none() || !cli.geoparquet.is_empty()))
+        || (mode == SearchMode::Snapshot && cli.dataset.is_none() && cli.geoparquet.is_empty())
+        || (mode == SearchMode::Live && (cli.dataset.is_some() || !cli.geoparquet.is_empty()))
+        || (mode != SearchMode::Auto && cli.max_snapshot_age_seconds.is_some()) {
+        eprintln!("error: auto requires --dataset; snapshot requires --dataset or --geoparquet; live takes neither; max-snapshot-age-seconds applies only to auto");
+        return ExitCode::FAILURE;
+    }
+
+    let engine = if let Some(root) = &cli.dataset {
+        #[cfg(not(feature = "geoparquet"))]
+        {
+            let _ = root;
+            eprintln!("error: rebuild superstac-cli with --features geoparquet to search datasets");
+            return ExitCode::FAILURE;
+        }
+        #[cfg(feature = "geoparquet")]
+        match if mode == SearchMode::Auto {
+            Ok(SuperSTACEngine::automatic(db, root.clone(), std::time::Duration::from_secs(
+                cli.max_snapshot_age_seconds.unwrap_or(86400)
+            )))
+        } else {
+            SuperSTACEngine::from_dataset(db, root)
+        } {
+            Ok(engine) => engine,
+            Err(e) => {
+                eprintln!("error: failed to open dataset: {e}");
+                return ExitCode::FAILURE;
+            }
+        }
+    } else if cli.geoparquet.is_empty() {
+        SuperSTACEngine::new(db)
+    } else {
+        #[cfg(not(feature = "geoparquet"))]
+        {
+            eprintln!("error: rebuild superstac-cli with --features geoparquet to search snapshots");
+            return ExitCode::FAILURE;
+        }
+        #[cfg(feature = "geoparquet")]
+        {
+            let mut paths = std::collections::HashMap::new();
+            for (id, path) in cli.geoparquet {
+                if paths.insert(id.clone(), path).is_some() {
+                    eprintln!("error: multiple snapshot paths for catalog '{id}'");
+                    return ExitCode::FAILURE;
+                }
+            }
+            match SuperSTACEngine::from_geoparquet(db, paths) {
+                Ok(engine) => engine,
+                Err(e) => {
+                    eprintln!("error: failed to configure snapshots: {e}");
+                    return ExitCode::FAILURE;
+                }
+            }
+        }
+    };
 
     if let Err(e) = engine.start().await {
         eprintln!("error: engine failed to start: {}", e);
@@ -104,10 +233,121 @@ async fn main() -> ExitCode {
     let exit = match cli.command {
         Command::Search(args) => run_search(&engine, args, cli.json).await,
         Command::Collections(args) => run_collections(&engine, args, cli.json).await,
+        Command::Ingest(_) => unreachable!("ingestion is handled before engine startup"),
     };
 
     engine.shutdown().await;
     exit
+}
+
+#[cfg(feature = "geoparquet")]
+async fn run_ingest(
+    db: &dyn superstac_core::storages::factory::StorageBackend,
+    args: &IngestArgs,
+    json: bool,
+    quiet: bool,
+) -> ExitCode {
+    use superstac_engine::{ingest_catalog, IngestOptions, IngestScope};
+    let mut catalogs = Vec::new();
+    for id in &args.catalogs {
+        if catalogs.iter().any(|c: &superstac_core::models::catalog::Catalog| &c.id == id) {
+            eprintln!("error: duplicate catalog '{id}'");
+            return ExitCode::FAILURE;
+        }
+        match db.get_catalog(id) {
+            Ok(catalog) => catalogs.push(catalog.clone()),
+            Err(e) => { eprintln!("error: {e}"); return ExitCode::FAILURE; }
+        }
+    }
+    let mut completed = Vec::new();
+    for catalog in catalogs {
+        let mut options = IngestOptions::new(&args.output, IngestScope {
+            collections: args.collections.clone(), bbox: args.bbox, datetime: args.datetime.clone(),
+        });
+        options.page_size = args.page_size;
+        options.items_per_file = args.items_per_file;
+        options.request_timeout = std::time::Duration::from_secs(args.timeout_seconds);
+        options.resume = args.resume;
+        options.name = args.name.clone();
+        options.max_dataset_bytes = if args.max_dataset_mib == 0 { None } else {
+            match args.max_dataset_mib.checked_mul(1024 * 1024) {
+                Some(bytes) => Some(bytes),
+                None => { eprintln!("error: storage budget is too large"); return ExitCode::FAILURE; }
+            }
+        };
+        if !args.no_progress && !quiet { options.progress = Some(ingest_progress()); }
+        if !quiet { eprintln!("ingesting '{}' into {}", catalog.id, args.output.display()); }
+        match ingest_catalog(&catalog, options).await {
+            Ok(snapshot) => {
+                if !quiet { eprintln!("completed '{}' scope '{}': {} items, {} pages, {} files", catalog.id,
+                    snapshot.name, snapshot.items, snapshot.pages, snapshot.files.len()); }
+                completed.push(snapshot);
+            }
+            Err(e) => {
+                eprintln!("error: {e}");
+                if json { print_json(&completed); }
+                return ExitCode::FAILURE;
+            }
+        }
+    }
+    if json { print_json(&completed); }
+    ExitCode::SUCCESS
+}
+
+#[cfg(not(feature = "geoparquet"))]
+async fn run_ingest(
+    _db: &dyn superstac_core::storages::factory::StorageBackend,
+    _args: &IngestArgs,
+    _json: bool,
+    _quiet: bool,
+) -> ExitCode {
+    eprintln!("error: rebuild superstac-cli with --features geoparquet to ingest snapshots");
+    ExitCode::FAILURE
+}
+
+#[cfg(feature = "geoparquet")]
+fn ingest_progress() -> superstac_engine::ProgressCallback {
+    use std::{io::{IsTerminal, Write}, sync::{Arc, Mutex}, time::{Duration, Instant}};
+    use superstac_engine::IngestPhase;
+    let terminal = std::io::stderr().is_terminal();
+    let last = Mutex::new(None::<Instant>);
+    Arc::new(move |event| {
+        let mut last = last.lock().unwrap_or_else(|e| e.into_inner());
+        let final_event = matches!(event.phase, IngestPhase::Completed | IngestPhase::Failed);
+        let interval = if terminal { Duration::from_millis(250) } else { Duration::from_secs(2) };
+        if !final_event && event.phase != IngestPhase::Retrying && last.is_some_and(|t| t.elapsed() < interval) {
+            return;
+        }
+        *last = Some(Instant::now());
+        let estimate = event.total_items.filter(|total| *total > 0 && *total >= event.items_received)
+            .map(|total| {
+                let percent = event.items_received as f64 * 100.0 / total as f64;
+                let eta = if event.items_per_second > 0.0 {
+                    format!(", ETA ~{:.0}s", (total - event.items_received) as f64 / event.items_per_second)
+                } else { String::new() };
+                format!(" / ~{total} ({percent:.1}%{eta})")
+            }).unwrap_or_default();
+        let line = format!("{} {:?}: {} received{}, {} saved | {} pages, {} files, {:.1} MiB saved | {:.0}s, {:.0} items/s{}",
+            event.catalog_id, event.phase, event.items_received, estimate, event.items_saved,
+            event.pages, event.files, event.bytes_saved as f64 / 1048576.0,
+            event.elapsed_seconds, event.items_per_second,
+            event.message.as_ref().map(|m| format!(" | {m}")).unwrap_or_default());
+        let mut stderr = std::io::stderr().lock();
+        if terminal {
+            let _ = write!(stderr, "\r\x1b[K{line}");
+            if final_event { let _ = writeln!(stderr); }
+        } else { let _ = writeln!(stderr, "{line}"); }
+        let _ = stderr.flush();
+    })
+}
+
+fn parse_snapshot(value: &str) -> Result<(String, PathBuf), String> {
+    match value.split_once('=') {
+        Some((id, path)) if !id.is_empty() && !path.is_empty() => {
+            Ok((id.to_owned(), PathBuf::from(path)))
+        }
+        _ => Err("expected CATALOG=PATH, e.g. earth-search=./data/items.parquet".into()),
+    }
 }
 
 fn parse_bbox(s: &str) -> Result<Bbox, String> {
@@ -144,6 +384,7 @@ fn init_tracing(settings: &Settings, verbose: bool, quiet: bool) {
         .unwrap_or_else(|_| EnvFilter::new(default_level));
 
     tracing_subscriber::fmt()
+        .with_writer(std::io::stderr)
         .with_env_filter(filter)
         .with_target(false)
         .init();
@@ -275,9 +516,14 @@ async fn run_search(engine: &SuperSTACEngine, args: SearchArgs, json: bool) -> E
         }
     };
 
+    let exit = if response.metadata.catalogs_queried > 0 && response.metadata.catalogs_succeeded == 0 {
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
+    };
     if json {
         print_json(&response);
-        return ExitCode::SUCCESS;
+        return exit;
     }
 
     let m = &response.metadata;
@@ -308,7 +554,7 @@ async fn run_search(engine: &SuperSTACEngine, args: SearchArgs, json: bool) -> E
         }
     }
 
-    ExitCode::SUCCESS
+    exit
 }
 
 fn print_json<T: serde::Serialize>(value: &T) {

@@ -4,7 +4,7 @@ use url::{ParseError, Url};
 use crate::errors::{SuperSTACError, ValidationError};
 
 /// Current UTC timestamp. Centralized so tests can mock it later.
-pub fn get_date_time() -> DateTime<Utc> {
+pub fn get_datetime_utc() -> DateTime<Utc> {
     Utc::now()
 }
 

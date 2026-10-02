@@ -1,6 +1,6 @@
 [package]
 name = "superstac-core"
-description = "Domain models, storage trait, and shared utilities for SuperSTAC federated STAC search."
+description = "Domain models, storage trait, and shared utilities for SuperSTAC."
 keywords = ["stac", "geospatial", "satellite", "remote-sensing"]
 categories = ["science::geo"]
 readme = "../../README.md"

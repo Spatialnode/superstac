@@ -38,7 +38,7 @@ catalogs:
     settings:
       health_check_strategy: Hourly
       healthy_status_code_range: [200, 299]
-        enable_background_health_monitor: false
+      enable_background_health_monitor: false
 
   # Example: a catalog that needs aliases because it uses non-canonical names.
   # Uncomment and adapt when adding a catalog like CDSE.

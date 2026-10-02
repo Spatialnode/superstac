@@ -2,8 +2,9 @@
 //!
 //! Given a list of catalogs and a [`query::SearchQuery`],
 //! [`executor::SearchExecutor`] queries them concurrently (with retry,
-//! pagination, and per-catalog timeouts), unifies item bodies via
-//! [`unifier`], and aggregates results in [`aggregator`].
+//! per-catalog timeouts), delegates retrieval to [`backend::SearchBackend`],
+//! and aggregates results in [`aggregator`]. The default [`stac_api::StacApiBackend`]
+//! handles API pagination and canonicalization via [`unifier`].
 //!
 //! This crate is pure logic — it knows nothing about engine state or storage.
 //! Use `superstac_engine` for the runtime that wires storage + search +
@@ -16,3 +17,6 @@ pub mod options;
 pub mod executor;
 pub mod aggregator;
 pub mod unifier;
+
+pub mod backend;
+pub mod stac_api;

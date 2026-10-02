@@ -6,11 +6,12 @@ members = [
     "crates/search",
     "crates/engine",
     "crates/cli",
-    "crates/python",
+    "crates/python", 
+    "crates/geoparquet",
 ]
 
 [workspace.package]
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 rust-version = "1.88"
 license = "MIT"

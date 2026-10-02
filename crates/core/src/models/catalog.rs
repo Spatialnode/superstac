@@ -7,7 +7,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::errors::{SuperSTACError, ValidationError};
 
-use crate::utils::{get_date_time, parse_url, validate_identifier};
+use crate::utils::{get_datetime_utc, parse_url, validate_identifier};
 
 /// How often to poll a catalog's health endpoint.
 ///
@@ -144,7 +144,7 @@ pub fn get_default_health_status(url: String) -> HealthStatus {
         available: false,
         // Defaults to the catalog url.
         endpoint: url,
-        last_checked: Some(get_date_time()),
+        last_checked: Some(get_datetime_utc()),
         status_code: 200,
     }
 }
@@ -224,7 +224,7 @@ impl Catalog {
             collection_aliases: HashMap::new(),
             asset_aliases: HashMap::new(),
             supported_collections: None,
-            created_at: Some(get_date_time()),
+            created_at: Some(get_datetime_utc()),
             updated_at: None,
         })
     }
@@ -269,7 +269,7 @@ impl Catalog {
 
     /// Stamp `updated_at` with the current time.
     pub fn set_update_date(&mut self) {
-        self.updated_at = Some(get_date_time());
+        self.updated_at = Some(get_datetime_utc());
     }
 
     /// Apply a partial update. `None` fields are left alone.

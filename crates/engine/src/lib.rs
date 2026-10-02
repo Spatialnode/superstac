@@ -13,3 +13,10 @@ pub mod discovery;
 pub use engine::SuperSTACEngine;
 pub use discovery::CollectionAvailability;
 pub use types::SharedStorage;
+
+#[cfg(feature = "geoparquet")]
+pub use superstac_geoparquet::{
+    ingest::{ingest_catalog, IngestOptions},
+    manifest::{DatasetManifest, IngestScope, Snapshot},
+    progress::{IngestPhase, IngestProgress, ProgressCallback},
+};

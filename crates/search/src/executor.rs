@@ -1,27 +1,32 @@
-use futures::{StreamExt, TryStreamExt};
-use stac::Item;
+use futures::StreamExt;
 use superstac_core::{errors::SuperSTACError, models::catalog::Catalog};
 use tokio::time::{sleep, timeout};
 
 use crate::{
     aggregator::SearchAggregator,
+    backend::{BackendSearchOptions, SearchBackend},
     options::FederationOptions,
     query::SearchQuery,
     response::{CatalogFailure, SearchItem, SearchResponse},
-    translator::to_stac_search,
-    unifier,
+    stac_api::StacApiBackend,
 };
 
 /// Fans out a search across catalogs with retry, capped concurrency, and
-/// per-catalog timeouts. Owns the `reqwest::Client` it borrows from the
-/// engine so connection pools and default headers are shared.
+/// per-catalog timeouts. Delegates each retrieval attempt to a search backend.
 pub struct SearchExecutor {
-    client: reqwest::Client,
+    backend: Box<dyn SearchBackend>,
 }
 
 impl SearchExecutor {
     pub fn new(client: reqwest::Client) -> Self {
-        Self { client }
+        Self::with_backend(Box::new(StacApiBackend::new(client)))
+    }
+
+    /// Construct an executor with an alternative item retrieval backend.
+    /// The backend handles every catalog passed to this executor; this does not
+    /// configure engine source selection or health monitoring.
+    pub fn with_backend(backend: Box<dyn SearchBackend>) -> Self {
+        Self { backend }
     }
 
     /// Query all `catalogs` concurrently and aggregate the results.
@@ -94,7 +99,14 @@ impl SearchExecutor {
         for attempt in 1..=options.retry.max_attempts {
             let attempt_result = timeout(
                 options.per_catalog_timeout,
-                self.search_catalog(catalog.clone(), query.clone(), options),
+                self.backend.search(
+                    &catalog,
+                    query.clone(),
+                    BackendSearchOptions {
+                        max_items_per_catalog: options.max_items_per_catalog,
+                        unify_response: options.unify_response,
+                    },
+                ),
             )
             .await;
 
@@ -131,71 +143,9 @@ impl SearchExecutor {
 
         Err(last_error)
     }
-
-    async fn search_catalog(
-        &self,
-        catalog: Catalog,
-        mut query: SearchQuery,
-        options: FederationOptions,
-    ) -> Result<Vec<SearchItem>, SuperSTACError> {
-        // Translate canonical collection names to this catalog's local names.
-        // Falls back to the canonical name when no alias is declared.
-        query.collections = query
-            .collections
-            .iter()
-            .map(|c| catalog.resolve_collection(c).to_string())
-            .collect();
-
-        // Cap items at min(user_limit, per-catalog system cap). Set on the
-        // STAC search so the server doesn't waste a round-trip filling more
-        // than we'd keep.
-        let user_limit = query.limit.unwrap_or(10);
-        let cap = user_limit.min(options.max_items_per_catalog);
-        query.limit = Some(cap);
-
-        let search = to_stac_search(query);
-
-        let stac_client = stac_io::api::Client::with_client(self.client.clone(), &catalog.url)
-            .map_err(|e| SuperSTACError::SearchFailed(format!("stac client init: {}", e)))?;
-
-        let stream = stac_client
-            .search(search)
-            .await
-            .map_err(|e| SuperSTACError::SearchFailed(format!("search request: {}", e)))?;
-
-        // Stream of `stac::api::Item` (= `serde_json::Map<String, Value>`),
-        // paginated internally by stac-io. `take(cap)` bounds the total;
-        // `try_collect` short-circuits on first per-item stream error.
-        let raw_items: Vec<stac::api::Item> = stream
-            .take(cap)
-            .try_collect()
-            .await
-            .map_err(|e| SuperSTACError::SearchFailed(format!("stream item: {}", e)))?;
-
-        let items: Vec<SearchItem> = raw_items
-            .into_iter()
-            .map(|map_item| {
-                let mut item: Item =
-                    serde_json::from_value(serde_json::Value::Object(map_item))
-                        .map_err(|err| SuperSTACError::SearchFailed(err.to_string()))?;
-
-                if options.unify_response {
-                    unifier::unify_item(&mut item, &catalog);
-                }
-
-                Ok(SearchItem {
-                    catalog_id: catalog.id.clone(),
-                    seen_in: vec![catalog.id.clone()],
-                    item,
-                })
-            })
-            .collect::<Result<Vec<_>, SuperSTACError>>()?;
-
-        Ok(items)
-    }
 }
 
-/// For now: treat all `SearchFailed` errors as retryable. 
+/// For now: treat all `SearchFailed` errors as retryable.
 /// TODO - richer error taxonomy (Network / Timeout / Server5xx / Client4xx) and only retry on appropriate ones.
 fn is_retryable(error: &SuperSTACError) -> bool {
     matches!(error, SuperSTACError::SearchFailed(_))

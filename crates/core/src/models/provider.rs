@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     errors::{SuperSTACError, ValidationError},
-    utils::{get_date_time, parse_url, validate_identifier},
+    utils::{get_datetime_utc, parse_url, validate_identifier},
 };
 
 /// A vendor/organization that operates one or more STAC catalogs. Mostly
@@ -79,7 +79,7 @@ impl CatalogProvider {
             logo_url: valid_logo,
             description,
             catalog_ids,
-            created_at: Some(get_date_time()),
+            created_at: Some(get_datetime_utc()),
             updated_at: None,
         })
     }
@@ -130,12 +130,12 @@ impl CatalogProvider {
 
     /// Stamp `updated_at` with the current time.
     pub fn set_update_date(&mut self) {
-        self.updated_at = Some(get_date_time());
+        self.updated_at = Some(get_datetime_utc());
     }
 
     /// Stamp `created_at` with the current time.
     pub fn set_created_date(&mut self) {
-        self.created_at = Some(get_date_time());
+        self.created_at = Some(get_datetime_utc());
     }
 
     /// Detach a catalog from this provider. No-op if not linked.

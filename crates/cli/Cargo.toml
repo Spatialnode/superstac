@@ -18,10 +18,10 @@ name = "superstac"
 path = "src/main.rs"
 
 [dependencies]
-superstac-core = { path = "../core", version = "0.2.0" }
-superstac-config = { path = "../config", version = "0.2.0" }
-superstac-search = { path = "../search", version = "0.2.0" }
-superstac-engine = { path = "../engine", version = "0.2.0" }
+superstac-core = { path = "../core", version = "0.3.0" }
+superstac-config = { path = "../config", version = "0.3.0" }
+superstac-search = { path = "../search", version = "0.3.0" }
+superstac-engine = { path = "../engine", version = "0.3.0" }
 clap = { version = "4", features = ["derive"] }
 serde = "1"
 serde_json = "1"
@@ -29,3 +29,10 @@ stac = "0.16"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "ansi", "tracing-log"] }
+
+[features]
+default = []
+geoparquet = ["superstac-engine/geoparquet"]
+
+[dev-dependencies]
+tempfile = "3"
