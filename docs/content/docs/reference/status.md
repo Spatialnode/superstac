@@ -8,7 +8,7 @@ SuperSTAC is a pre-1.0, MIT-licensed project. This documentation targets version
 ## Available
 
 - Python sync and async clients backed by Rust.
-- GeoParquet inventories, coverage-aware local search, incremental overlays, compaction and cleanup.
+- Save metadata to GeoParquet, search it locally, update it, and remove old files.
 - A Tokio-based Rust engine and command-line tool.
 - In-memory catalog and provider registration.
 - Collection discovery and source selection.
@@ -26,11 +26,15 @@ SuperSTAC is a pre-1.0, MIT-licensed project. This documentation targets version
 
 The package searches item metadata; it does not download, mosaic, render, or reproject imagery.
 
-## Current alpha behavior to account for
+## Things to check when using v0.3
 
-YAML and Python dictionary configuration have different required fields. Python `matched()` counts returned records. Python item dictionaries omit per-item provenance wrappers. `sortby` orders results per catalog; the merged response is not globally sorted. Health monitors and global monitoring settings have limitations documented in [resilience](/docs/guides/resilience/).
+- Start YAML files from the [sample configuration](/superstac/examples/superstac.yml). They require fields that Python dictionaries can omit.
+- Python’s `matched()` counts returned items, not all matches in a catalog.
+- Python results do not identify which catalog supplied each item.
+- `sortby` sorts each catalog’s results separately.
+- Catalogs that fail their initial health check need a restart to be checked again. See [health monitoring](/docs/guides/resilience/).
 
-These are implementation constraints, not promises about future releases. Track development in the [repository](https://github.com/spatialnode/superstac) and [changelog](https://github.com/spatialnode/superstac/blob/main/CHANGELOG.md).
+Follow changes in the [repository](https://github.com/spatialnode/superstac) and [changelog](https://github.com/spatialnode/superstac/blob/main/CHANGELOG.md).
 
 ## License
 

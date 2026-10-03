@@ -3,7 +3,7 @@ title: Command-line interface
 description: Search catalogs and inspect collections from your terminal.
 ---
 
-The binary is `superstac`. [Install it](/docs/start/installation/) and save the [complete sample](/superstac/examples/superstac.yml) as `superstac.yml`.
+Run `superstac` from your terminal. [Install it](/docs/start/installation/) and save the [complete sample](/superstac/examples/superstac.yml) as `superstac.yml`.
 
 ## Global options
 
@@ -31,7 +31,7 @@ superstac search -c sentinel-2-l2a --id scene-id
 | `-l`, `--limit N` | Maximum items per catalog; default `10`. |
 | `--id ID` | Item ID; repeatable. |
 
-For negative coordinates, use `--bbox=-10,35,5,45` to avoid flag parsing ambiguity. `intersects` is not a CLI option. Sorting accepts repeated `--sortby=-datetime` or `--sortby=eo:cloud_cover` flags.
+For negative coordinates, use an equals sign: `--bbox=-10,35,5,45`. To sort, add `--sortby=-datetime` for newest first or `--sortby=eo:cloud_cover` for lowest cloud cover first. You can repeat `--sortby`; ordering applies within each catalog. The CLI does not accept `intersects`.
 
 ## Collection discovery
 
@@ -53,12 +53,10 @@ superstac --json search -c sentinel-2-l2a -l 5
 RUST_LOG=superstac_search=debug superstac search -c sentinel-2-l2a
 ```
 
-The JSON search response contains `items` and `metadata`. Each item is wrapped with `catalog_id`, `item`, and `seen_in`; it is not directly a GeoJSON FeatureCollection.
+The JSON response contains `items` and `metadata`. Each entry in `items` contains the STAC record under `item`, plus `catalog_id` and `seen_in` to show where it came from. See [results](/docs/reference/results) for an example.
 
-> **Current CLI logging caveat**
->
-> The current tracing subscriber uses its default writer, which can put logs on standard output. For reliable JSON piping, set `logging_enabled: false` in your configuration before using `jq` or another parser. `--quiet` changes the level but does not disable all logs.
+Logs and ingestion progress go to stderr, leaving stdout available for JSON. Keep the two streams separate when piping into `jq` or another parser. `--quiet` reduces logging but still allows warnings.
 
-`RUST_LOG` overrides the CLI-selected logging level when logging is enabled. Per-catalog failures may appear inside a successfully serialized response; check the metadata rather than relying only on the exit code.
+`RUST_LOG` overrides the CLI-selected logging level when logging is enabled. A successful exit code can still come with failed catalogs. Check `metadata.failures` to see whether any catalog searches failed.
 
-See [GeoParquet inventories](/docs/guides/geoparquet) for ingestion, backend selection, and dataset maintenance.
+See [GeoParquet inventories](/docs/guides/geoparquet) to save metadata, search it locally, and update saved inventories.

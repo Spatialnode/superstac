@@ -1,9 +1,9 @@
 ---
 title: Installation
-description: Install the Python bindings, Rust crates, or command-line tool and choose the right interface.
+description: Install SuperSTAC for Python, Rust, or the command line.
 ---
 
-SuperSTAC has three interfaces over the same Rust search engine. Choose Python for notebooks and pipelines, Rust for embedding, or the CLI for terminal workflows.
+Choose Python for notebooks and scripts, Rust to add search to an application, or the CLI to work from your terminal.
 
 ## Python
 
@@ -11,7 +11,7 @@ SuperSTAC has three interfaces over the same Rust search engine. Choose Python f
 python -m pip install superstac
 ```
 
-Use **Python 3.9 or newer** for the current bindings: the native extension targets the `abi3-py39` ABI. The package metadata currently declares an older minimum; the extension's ABI is the practical constraint.
+You need **Python 3.9 or newer**.
 
 Verify the import:
 
@@ -19,7 +19,7 @@ Verify the import:
 python -c "from superstac import Client, AsyncClient; print(Client, AsyncClient)"
 ```
 
-If no wheel is available for your platform or the registry release differs from this checkout, build the bindings from source. You need a Rust toolchain compatible with the workspace's **Rust 1.88 minimum** and Python development tools.
+To build from source, you need **Rust 1.88 or newer** and Python development tools. Use this if no wheel is available for your platform or you want to try unreleased changes:
 
 ```bash
 git clone https://github.com/spatialnode/superstac
@@ -63,6 +63,6 @@ cargo build --release -p superstac-cli
 
 The executable is named `superstac`; the Rust package is `superstac-cli`.
 
-## Next step
+## Run a search
 
 [Run a first search](/docs/start/quickstart/) against two catalogs, or read the [CLI reference](/docs/cli/overview/) for flags and output formats.

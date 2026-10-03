@@ -3,9 +3,9 @@ title: Python client
 description: Search multiple STAC APIs from scripts and notebooks with the synchronous Client.
 ---
 
-The Python package wraps the Rust engine using PyO3. Items and collection documents are returned as ordinary Python dictionaries.
+Use `Client` to search STAC catalogs from a script or notebook. Results and collection documents are ordinary Python dictionaries.
 
-For an interactive walkthrough, [try the Python notebook in Colab or Jupyter](/docs/python/notebook). It includes a federated search, item table, footprint map, and GeoJSON export.
+For an interactive walkthrough, [try the Python notebook in Colab or Jupyter](/docs/python/notebook). Search two catalogs, browse the items in a table, map their footprints, and export GeoJSON.
 
 ## Connect to one catalog
 
@@ -21,7 +21,7 @@ finally:
     client.shutdown()
 ```
 
-`open()` registers the endpoint and starts the engine. `Client(...)` and `Client.from_yaml(...)` construct an unstarted client; the first search or discovery operation starts it automatically.
+`open()` connects to the catalog and runs startup checks immediately. With `Client(...)` or `Client.from_yaml(...)`, those checks happen when you first search or discover collections.
 
 ## Connect to multiple catalogs
 
@@ -43,23 +43,23 @@ finally:
     client.shutdown()
 ```
 
-A positional configuration dictionary can contain `catalogs`, `providers`, and `settings`. If you pass `config`, it takes precedence over the separate keyword arguments. Choose one style per client.
+You can also pass a configuration dictionary containing `catalogs`, `providers`, and `settings` as the first argument. Choose either that dictionary or the separate keyword arguments: when you supply `config`, the separate arguments are ignored.
 
 ## Work with the results
 
 | Operation | Returns |
 | --- | --- |
-| `search.items()` | A materialized list of STAC item dictionaries. |
-| `search.matched()` | The number of items returned after aggregation, not the upstream total. |
+| `search.items()` | A list of STAC item dictionaries. |
+| `search.matched()` | The number of returned items, after duplicates are removed if enabled. |
 | `len(search)` | Number of returned items. |
 | `search.to_geojson()` | A GeoJSON FeatureCollection dictionary. |
 | `search.item_collection_as_dict()` | The same FeatureCollection representation. |
 | `search.metadata` | Search counts, failures, and unsupported collection IDs. |
 
-Iterate with `for item in search.items()`. The Python API does not stream items as they arrive; the Rust search has completed before the `Search` object is returned.
+Iterate with `for item in search.items()`. Search collects the results before returning, so this loop reads items already in memory.
 
 ## Moving from pystac-client
 
-The familiar `Client.open()`, `search()`, and `items()` shapes make migration easier, but this is **not full drop-in compatibility**. Returned items are dictionaries, not `pystac.Item` instances. `matched()` reports collected items, and arbitrary pystac-client options, modifiers, authentication hooks, and pagination APIs are not implemented.
+If you use pystac-client, you will recognize `Client.open()`, `search()`, and `items()`. A few differences matter when switching: items are dictionaries rather than `pystac.Item` objects, and `matched()` counts returned items rather than all matches in the catalog. SuperSTAC does not support pystac-client’s full set of options, modifiers, authentication hooks, or pagination methods.
 
-Use `to_geojson()`, not `as_geojson()`. See the [API reference](/docs/python/api/) for the supported surface and [async guide](/docs/python/async/) for asyncio applications.
+Use `to_geojson()`, not `as_geojson()`. See the [API reference](/docs/python/api/) for supported methods and [async guide](/docs/python/async/) for asyncio applications.

@@ -7,12 +7,12 @@ description: Diagnose empty results, configuration errors, import failures, and 
 
 Inspect `search.metadata` before changing the query:
 
-- `catalogs_queried == 0`: no eligible catalogs were selected. Check registration, startup health, and collection IDs.
+- `catalogs_queried == 0`: no catalogs were searched. Check that you registered them, that they passed startup health checks, and that the collection IDs are correct.
 - `catalogs_failed > 0`: read each entry in `failures` for the catalog and reason.
-- `unsupported_collections` is nonempty: discovered capabilities did not advertise those canonical IDs.
-- Successful catalogs with zero returned items: broaden the spatial or temporal filter and verify upstream coverage.
+- `unsupported_collections` is nonempty: the catalogs checked did not advertise those collection names.
+- Catalogs succeeded but returned no items: try a larger area or date range, and check that the catalogs have data for it.
 
-Use `list_catalogs()` to inspect health and `list_collections()` for discovery. A failed `/collections` request leaves capability knowledge unknown; this does not itself prove a collection is unsupported.
+Use `list_catalogs()` to inspect health and `list_collections()` for discovery. If a catalog’s `/collections` request failed, SuperSTAC may not know what it offers. That failure alone does not mean your collection is unavailable.
 
 ## YAML reports missing fields
 
@@ -22,7 +22,7 @@ If you set a catalog's `settings`, include its frequency and status range. The f
 
 ## Python raises AttributeError for as_geojson
 
-The implemented method is `search.to_geojson()` (or `search.item_collection_as_dict()`). Returned items are dictionaries, not PySTAC objects.
+Use `search.to_geojson()` (or `search.item_collection_as_dict()`). Returned items are dictionaries, not PySTAC objects.
 
 ## Fewer items than expected
 
@@ -44,10 +44,9 @@ Use `--json` for machine-readable output. CLI logs and ingestion progress go to 
 
 Use Python 3.9+ and ensure the package is installed in the interpreter you are running. Check `python -m pip show superstac`. If a compatible wheel is unavailable, follow the [source build instructions](/docs/start/installation/).
 
-## Report a reproducible issue
+## Report a problem
 
 Include the package version or commit, Python/Rust version, operating system, a minimal configuration without credentials, the query, and failure metadata. Open an issue on [GitHub](https://github.com/spatialnode/superstac/issues).
-
 
 ## Identify your version
 

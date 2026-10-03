@@ -3,9 +3,9 @@ title: Configuration
 description: Complete YAML structure, catalog fields, and global search settings.
 ---
 
-## Configuration sources
+## Start with a configuration file
 
-Python accepts a dictionary with optional `catalogs`, `providers`, and `settings` keys. The YAML loader is stricter: the current `SuperStacConfig` requires all three top-level fields, and `Settings` has six required fields. Start from the [complete downloadable config](/superstac/examples/superstac.yml).
+Download the [sample configuration](/superstac/examples/superstac.yml) and edit it for your catalogs. YAML requires `catalogs`, `providers`, and `settings`, including the six settings marked as required below. A Python configuration dictionary can omit these fields and use defaults.
 
 The filename must be **`superstac.yml` or `superstac.yaml`**, even when supplied by an explicit path.
 
@@ -14,7 +14,7 @@ The filename must be **`superstac.yml` or `superstac.yaml`**, even when supplied
 | Field | Meaning |
 | --- | --- |
 | `id` | Required local identifier. |
-| `url` | Always provide the STAC API root URL; conversion assumes it is present. |
+| `url` | Required for use: provide the STAC API root URL. |
 | `provider` | Optional ID of an already registered provider. |
 | `title`, `description` | Optional descriptive strings. |
 | `settings` | Optional complete per-catalog settings object. |
@@ -41,7 +41,7 @@ Use these per-catalog fields to control health checks. Their defaults are hourly
 
 ## Global settings
 
-Defaults below describe a new in-memory backend. In YAML, the first six fields are still required explicitly; Rust `Default` is not automatically applied by the YAML deserializer.
+These are the defaults for a new client. In YAML, include the first six fields even when you want their default values.
 
 | Field | Default | Notes |
 | --- | --- | --- |
@@ -62,7 +62,7 @@ Defaults below describe a new in-memory backend. In YAML, the first six fields a
 | `max_items_per_catalog` | `1000` | Hard cap; effective cap is the smaller of this and the query limit. |
 | `enable_background_health_monitor` | `true` | Current memory-storage update path does not apply this global field; use per-catalog override. |
 
-Use positive values for execution limits. Optional fields omitted from YAML preserve the memory backend's defaults through the loader's partial update path.
+Use positive values for concurrency, timeouts, attempts, and item caps. Optional settings keep their defaults when you leave them out of YAML.
 
 ## Health frequency values
 
@@ -78,4 +78,4 @@ client.update_settings({"max_concurrent_catalogs": 4, "max_retry_attempts": 1})
 print(client.get_settings())
 ```
 
-These settings are held in memory and affect later searches. Read [health and retries](/docs/guides/resilience/) for lifecycle limitations. These references document the working tree, so released packages may differ.
+Changes apply to later searches in this client. To reuse them in another session, update your configuration file too. See [health and retries](/docs/guides/resilience/) for settings that must be applied to individual catalogs.

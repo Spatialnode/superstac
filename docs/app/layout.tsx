@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
+import Script from 'next/script';
 import { RootProvider } from 'fumadocs-ui/provider/next';
 import './global.css';
 
@@ -31,6 +32,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <RootProvider theme={{ storageKey: 'theme', defaultTheme: 'system', enableSystem: true, disableTransitionOnChange: true }} search={{ options: { api: '/superstac/api/search' } }}>
           {children}
         </RootProvider>
+        {process.env.NODE_ENV === 'production' && (
+          <>
+            <Script
+              src="https://www.googletagmanager.com/gtag/js?id=G-S8TCVMB641"
+              strategy="afterInteractive"
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', 'G-S8TCVMB641');
+              `}
+            </Script>
+          </>
+        )}
       </body>
     </html>
   );

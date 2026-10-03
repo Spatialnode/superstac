@@ -1,9 +1,9 @@
 ---
 title: Rust engine
-description: Embed SuperSTAC in an asynchronous Rust application with explicit configuration and lifecycle.
+description: Search STAC catalogs from a Rust application running on Tokio.
 ---
 
-`SuperSTACEngine` orchestrates storage, health checks, collection discovery, and federated search. It runs on Tokio.
+Use `SuperSTACEngine` to search catalogs from a Tokio application. It checks catalog health, discovers collections, and combines search results.
 
 ## Dependencies
 
@@ -16,7 +16,7 @@ superstac-engine = "0.3"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 
-Use Rust 1.88 or newer as declared by the workspace. These examples target SuperSTAC 0.3.
+You need Rust 1.88 or newer. These examples use SuperSTAC 0.3.
 
 ## A complete search
 
@@ -68,9 +68,9 @@ Search starts the engine if needed. Explicit `engine.start().await?` is useful w
 
 ## Shared storage
 
-`SuperSTACEngine::new` takes ownership of a boxed storage backend. `SuperSTACEngine::from_shared` accepts the exported `SharedStorage` handle for applications that need to retain registry access. Configure sources before startup; after changing the registry, restart the engine to refresh startup discovery.
+Use `SuperSTACEngine::new` when the engine can own the boxed storage backend. Use `SuperSTACEngine::from_shared` with a `SharedStorage` handle when your application also needs access to the catalog registry. Add catalogs before startup; if you change them later, restart the engine to repeat discovery.
 
-## Crate boundaries
+## Which crates to use
 
 | Crate | Responsibility |
 | --- | --- |

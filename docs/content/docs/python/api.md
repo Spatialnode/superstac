@@ -1,6 +1,6 @@
 ---
 title: Python API reference
-description: Constructors, lifecycle, catalog registry, discovery, search, and result methods.
+description: Methods for creating clients, managing catalogs, searching, and reading results.
 ---
 
 Import the public types with `from superstac import Client, AsyncClient`. Both clients accept `storage="memory"`; other storage backends are rejected by the current Python bindings.
@@ -39,7 +39,7 @@ On `AsyncClient`, await `start()` and `shutdown()`. Read [health limitations](/d
 | `update_catalog(id, update)` | Update supported catalog fields. |
 | `delete_catalog(id)` | Remove a catalog. |
 
-Always include `id` and `url` when creating a catalog. `update_catalog` accepts `provider`, `title`, `description`, `url`, and `settings`. Alias maps are configured at creation, not through this update shape. Omitted title/description can be cleared by the current implementation.
+Always include `id` and `url` when creating a catalog. `update_catalog` accepts `provider`, `title`, `description`, `url`, and `settings`. Set aliases when you create the catalog; `update_catalog()` cannot change them. Include the existing title and description in an update if you want to keep them, because omitted values can be cleared.
 
 ## Provider registry
 
@@ -71,14 +71,14 @@ client.search(
 )
 ```
 
-Pass `collections` explicitly, using `[]` for all collections. See [search parameters](/docs/reference/search/) for `ids`, `intersects`, limit semantics, and unsupported parameters. The return value is a `Search` object; await the call on `AsyncClient`.
+Pass `collections` explicitly, using `[]` for all collections. See [search parameters](/docs/reference/search/) for `ids`, `intersects`, how limits work, and unsupported parameters. The return value is a `Search` object; await the call on `AsyncClient`.
 
 ## Search results
 
 `items()`, `matched()`, `to_geojson()`, `item_collection_as_dict()`, `len(search)`, and the `metadata` property are synchronous. See [result fields](/docs/reference/results/).
 
-Python item dictionaries do not expose the Rust `SearchItem.catalog_id` / `seen_in` wrapper. Metadata includes run-level failures and counts, not per-item provenance.
+Python returns the STAC item dictionaries without Rust’s `catalog_id` and `seen_in` fields. Use metadata to check failures and counts for the whole search; it does not identify the source of each item.
 
 ## Errors
 
-Invalid Python input generally raises `ValueError`. Engine errors are mapped to `RuntimeError`; `get_collection()` uses `KeyError` for a missing collection. Per-catalog search failures can instead be returned in `search.metadata["failures"]`, so catching exceptions alone does not establish completeness.
+Invalid Python input generally raises `ValueError`. Engine errors are mapped to `RuntimeError`; `get_collection()` uses `KeyError` for a missing collection. A search can also return normally with catalog failures listed in `search.metadata["failures"]`. Check that list even when no exception is raised.

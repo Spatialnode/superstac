@@ -7,9 +7,9 @@ import { Cards, Card } from 'fumadocs-ui/components/card';
 
 **Many catalogs. One search.**
 
-Your data lives across catalogs. SuperSTAC gives you one place to search them: register compatible STAC APIs, submit a query, and work with a combined set of items.
+Search several STAC catalogs with one query. Add the catalogs you use, choose an area and date range, and get their results together.
 
-The same Rust engine powers a Python package, a Rust library, and a command-line tool. It handles source selection, concurrent requests, collection and asset aliases, duplicate IDs, and per-catalog failures.
+Use Python in a notebook or script, Rust in your application, or the command line. SuperSTAC searches catalogs in parallel and reports which ones failed, so you can check whether the results are complete.
 
 For the background and motivation, read [Introducing SuperSTAC: Many catalogs. One search.](https://www.spatialnode.net/articles/introducing-superstac-many-catalogs-one-search2a5e11)
 
@@ -24,11 +24,11 @@ For the background and motivation, read [Introducing SuperSTAC: Many catalogs. O
 
 ## What you can build
 
-Search imagery across public and private-compatible endpoints, create a shared collection vocabulary for your application, or explore catalog availability from the terminal. SuperSTAC returns STAC item metadata; asset downloads and processing stay in your existing workflow.
+Find imagery across catalogs, use consistent collection and band names, or check which datasets a catalog offers. If you often search the same area, [save its metadata to GeoParquet](/docs/guides/geoparquet) and reuse it. Results contain STAC metadata and asset links; use your usual tools to download and process imagery.
 
 ## Before you start
 
-SuperSTAC is **alpha software**. Start with [installation](/docs/start/installation), then the [quickstart](/docs/start/quickstart). Read the [current limitations](/docs/reference/status) before relying on the API in production.
+Start with [installation](/docs/start/installation), then [run your first search](/docs/start/quickstart). SuperSTAC is **alpha software**: APIs may change, and some search features are [not yet supported](/docs/reference/status).
 
 ## Choose your interface
 

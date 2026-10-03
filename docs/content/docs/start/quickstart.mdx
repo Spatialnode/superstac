@@ -7,11 +7,11 @@ import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
 
 [Install SuperSTAC](/docs/start/installation/) first. This example searches Sentinel-2 imagery in Earth Search and Microsoft Planetary Computer.
 
-Prefer to run the example interactively? [Open the Python notebook](/docs/python/notebook) in Colab or Jupyter for a complete walkthrough with a map and downloadable results.
+You can also [run the Python notebook](/docs/python/notebook) in Colab or Jupyter to see the results on a map and download them.
 
 ## 1. Register your catalogs
 
-Python can take a dictionary directly. The CLI and the Rust example below load a YAML file. Save this complete file as `superstac.yml` in your working directory, or [download it](/superstac/examples/superstac.yml).
+For the CLI, save this file as `superstac.yml` in your working directory, or [download it](/superstac/examples/superstac.yml). The Python example below defines its catalogs directly, so you can skip the file unless you want to share a configuration.
 
 ```yaml title="superstac.yml"
 providers: []
@@ -42,7 +42,7 @@ settings:
 
 > **Use the complete YAML**
 >
-> The current YAML loader requires `catalogs`, `providers`, and `settings`, including the non-optional settings shown above. Python dictionary configuration accepts partial settings. They are not interchangeable deserialization paths.
+> Keep `catalogs`, `providers`, and the required fields in `settings`, even if you leave `providers` empty. Python dictionaries can omit settings that YAML requires; see [configuration](/docs/reference/configuration) for details.
 
 ## 2. Search an area and time range
 
@@ -70,7 +70,7 @@ finally:
     client.shutdown()
 ```
 
-To use the YAML file instead, replace construction with `client = Client.from_yaml("superstac.yml")`.
+To load the YAML file, create the client with `client = Client.from_yaml("superstac.yml")`.
 
 </Tab>
 <Tab value="Command line">
@@ -92,13 +92,13 @@ superstac --json search -c sentinel-2-l2a -l 5
 </Tab>
 </Tabs>
 
-The first search starts the engine automatically: it checks catalog health and discovers available collections before querying. This initial work can take longer than later searches.
+The first search also checks whether catalogs are reachable and which collections they offer. It can take longer than later searches.
 
 ## 3. Understand the response
 
-`limit=5` caps each catalog at five returned items. Two selected catalogs can contribute up to ten items before duplicates are removed. It is not a global limit or a count of all matching scenes.
+`limit=5` asks for up to five items from each catalog. With two catalogs, you can get up to ten items before duplicate IDs are removed. More matching scenes may exist.
 
-Inspect `catalogs_queried`, `catalogs_failed`, and `failures` in the metadata. An empty result can mean no matching scenes, no selected healthy catalogs, or catalog failures; the counts help distinguish them.
+Check `search.metadata` as well as the items. `catalogs_queried` tells you how many catalogs were searched; `catalogs_failed` and `failures` tell you what went wrong. If no items come back, these fields help you distinguish an empty search from an unavailable catalog.
 
 ## 4. Export the items
 

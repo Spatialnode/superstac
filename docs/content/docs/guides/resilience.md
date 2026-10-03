@@ -3,7 +3,9 @@ title: Health, retries, and failures
 description: Configure search concurrency and understand how partial failures affect results.
 ---
 
-## Bound the work
+## Set timeouts and retry limits
+
+Use these settings to control how much work a search can do and how long it waits for each catalog:
 
 ```python
 from superstac import Client
@@ -18,15 +20,15 @@ client = Client(settings={
 })
 ```
 
-Use positive values for concurrency, timeouts, attempts, and item caps. `max_retry_attempts` counts the initial attempt: `1` disables retry. Backoff grows exponentially up to the configured ceiling.
+Use positive values for these settings. `max_retry_attempts` includes the first attempt, so `2` allows one retry and `1` turns retries off. The wait between retries doubles until it reaches `retry_max_backoff_ms`.
 
-The timeout applies to each catalog search attempt, including its item collection. It is not a timeout for the entire client lifecycle: initial health checks and collection discovery use separate requests.
+The timeout covers one attempt to search a catalog and collect its items. A full search can take longer because retries, startup health checks, and collection discovery take additional time.
 
-The current retry classification is broad: search errors are retried, including some permanent failures. Do not assume only HTTP 5xx responses are retried.
+Search errors are retried even when some failures are permanent. If repeated attempts fail, read the failure reason before increasing the retry limit.
 
 ## Inspect partial failures
 
-A catalog failure can be recorded while other catalogs return useful items. Always inspect the response metadata when completeness matters.
+You can still get results when one catalog fails. Check the failure list to see which catalogs are missing from your results:
 
 ```python
 from superstac import Client
@@ -40,9 +42,9 @@ finally:
     client.shutdown()
 ```
 
-A response with zero items is not necessarily a successful empty search. Check both `catalogs_queried` and `catalogs_failed`. The executor can return a response even if all selected catalogs fail.
+A response with zero items is not necessarily a successful empty search. Check both `catalogs_queried` and `catalogs_failed`. You can receive a response even if every selected catalog fails.
 
-## Health monitoring in the current alpha
+## Check catalog health
 
 Search normally selects healthy catalogs only. Startup checks each endpoint and starts monitors for catalogs that initially pass. A catalog that is unhealthy at startup does not currently receive a background monitor, so automatic recovery is not guaranteed; restart the engine to recheck it.
 

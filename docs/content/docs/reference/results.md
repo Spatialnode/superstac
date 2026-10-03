@@ -1,11 +1,11 @@
 ---
 title: Results and provenance
-description: Interpret item wrappers, metadata counts, partial failures, and deduplication.
+description: Read search results, check failed catalogs, and understand how duplicate items are handled.
 ---
 
 ## Rust and CLI response
 
-The following is a schematic response; the `item` dictionary is abbreviated, not a complete STAC Item.
+A response contains items and metadata about the search. This example shortens the STAC item to show the surrounding fields:
 
 ```json
 {
@@ -28,7 +28,7 @@ The following is a schematic response; the `item` dictionary is abbreviated, not
 }
 ```
 
-`catalog_id` is the catalog whose item body was retained. `seen_in` tracks catalogs returning the same item ID. Deduplication does not combine asset dictionaries or resolve which provider has the best data.
+`catalog_id` tells you which catalog supplied the retained item. `seen_in` lists catalogs that returned the same item ID. SuperSTAC keeps one copy with its original assets; it does not choose the best provider or merge their assets.
 
 ## Metadata fields
 
@@ -42,7 +42,7 @@ The following is a schematic response; the `item` dictionary is abbreviated, not
 | `failures` | List of `{catalog_id, reason}` for failed searches. |
 | `unsupported_collections` | Requested canonical IDs that no candidate catalog was known to serve, reported conservatively when collection knowledge is complete. |
 
-A catalog excluded for health or capability reasons is not necessarily represented in `failures`. Compare metadata with your configured registry when diagnosing missing sources.
+A catalog skipped because it is unhealthy or does not offer the requested collection may be absent from `failures`. If a source is missing, compare the metadata with the catalogs you registered.
 
 ## Python representation
 
@@ -50,7 +50,7 @@ A catalog excluded for health or capability reasons is not necessarily represent
 
 `search.to_geojson()` returns `{ "type": "FeatureCollection", "features": [...] }`. It omits the Rust provenance wrappers and run metadata. Store `search.metadata` separately if you need a record of search failures.
 
-## Deduplication identity
+## How duplicates are identified
 
 Deduplication compares `Item.id` across the entire response, without including the collection ID. Disable it if your sources reuse item IDs for unrelated records:
 
@@ -59,4 +59,4 @@ from superstac import Client
 client = Client(settings={"deduplicate_items": False})
 ```
 
-Repeated observations with different IDs are not recognized as duplicates. Output order and the retained provider are not a stable ranking.
+The same scene with different IDs remains as separate items. Result order and the provider whose copy is kept can vary between searches.

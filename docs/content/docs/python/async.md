@@ -1,9 +1,9 @@
 ---
 title: Async Python
-description: Use AsyncClient in asyncio applications while keeping local registry operations synchronous.
+description: Search catalogs without blocking your asyncio application.
 ---
 
-`AsyncClient` exposes the same search engine without blocking the asyncio event loop on network operations.
+Use `AsyncClient` when your application already uses asyncio. Await searches and other network operations so the event loop can keep running while catalogs respond.
 
 ```python
 import asyncio
@@ -38,7 +38,7 @@ In a notebook that already has an event loop, use `await main()` instead of `asy
 | `start()`, `shutdown()`, `search(...)` | Await. |
 | `list_collections()`, `get_collections()`, `get_collection(id)` | Await. |
 | `catalogs_supporting(id)`, `collections_by_catalog()`, `describe_collection(catalog_id, collection_id)` | Await. |
-| Catalog/provider CRUD and settings operations | Synchronous; access local memory. |
+| Adding, reading, updating, or deleting catalogs/providers; settings methods | Synchronous; access local memory. |
 | `search.items()`, `search.to_geojson()`, `search.matched()` | Synchronous; results are already collected. |
 
 ## Open one endpoint
@@ -57,4 +57,4 @@ async def main():
 asyncio.run(main())
 ```
 
-Async search still collects each catalog's results before returning. It is not an async iterator over a federated result stream.
+Once `await client.search(...)` returns, the results are in memory. Read them with a regular `for` loop; items do not arrive one at a time through an async iterator.

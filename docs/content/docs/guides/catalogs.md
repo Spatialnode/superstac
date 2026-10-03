@@ -23,11 +23,11 @@ finally:
     client.shutdown()
 ```
 
-Catalog URLs must identify compatible STAC APIs, not arbitrary static catalog JSON files. Always supply `url`: although the current configuration type marks it optional, conversion assumes that it exists.
+Always provide the root `url` of a compatible STAC API. A link to a static catalog JSON file will not work.
 
 ## Group catalogs by provider
 
-Providers carry descriptive metadata; they are not authentication credentials.
+Use providers to group catalogs by organization. Provider records hold names and descriptions, not login credentials.
 
 ```python
 from superstac import Client
@@ -41,7 +41,7 @@ client.add_catalog(
 print(client.list_catalogs())
 ```
 
-Register providers before catalogs that refer to them. Prefer explicit catalog-to-provider assignment over the provider's `catalog_ids` input, which is not used during config conversion.
+Add the provider first, then pass its ID as `provider` when adding a catalog. The provider’s `catalog_ids` field is currently ignored when loading configuration.
 
 ## Discover collection availability
 
@@ -60,12 +60,12 @@ finally:
     client.shutdown()
 ```
 
-`list_collections()` returns a lightweight list of `{"id": ..., "catalogs": [...]}` records. `get_collections()` fetches full collection documents and can issue one HTTP request per distinct collection. Prefer the lightweight method when you only need availability.
+`list_collections()` returns `{"id": ..., "catalogs": [...]}` records showing where each collection is available. Use `get_collections()` when you need full collection documents; it can make a separate request for each collection.
 
-## Change the registry
+## Add, update, or remove catalogs
 
 `add_catalogs()`, `get_catalog()`, `list_catalogs()`, `update_catalog()`, and `delete_catalog()` operate on the in-memory registry. Register catalogs before starting the client so the initial health checks and discovery cover them.
 
 If you add catalogs after startup, call `shutdown()` and then `start()` to run startup discovery again. Calling `start()` while already started is a no-op.
 
-Catalog updates are not fully patch-like yet: omitted title and description fields can be cleared. Preserve these fields explicitly when updating. Registry changes disappear when the client is discarded; persistent backends are not implemented.
+Include the existing title and description when updating a catalog if you want to keep them; leaving them out can clear them. Changes are held in memory and disappear when you discard the client. Update your configuration file separately to keep them for the next run.

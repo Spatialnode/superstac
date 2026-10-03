@@ -3,9 +3,9 @@ title: How federation works
 description: Follow a search from one request to multiple catalogs and back to a combined result.
 ---
 
-SuperSTAC is a client-side search engine. It sends requests to STAC API catalogs you register; it does not maintain a global index or copy imagery into its own storage.
+Federation means searching several catalogs through one client. In live mode, SuperSTAC sends your query to the STAC APIs you register and combines their responses. You can also [save metadata locally](/docs/guides/geoparquet) for repeated searches. Imagery stays with the provider.
 
-## The vocabulary
+## Terms used in these docs
 
 | Term | Meaning |
 | --- | --- |
@@ -21,15 +21,15 @@ SuperSTAC is a client-side search engine. It sends requests to STAC API catalogs
 1. **Start and inspect.** The engine checks catalog health and discovers `/collections` on healthy catalogs.
 2. **Choose sources.** It normally excludes unhealthy catalogs and catalogs known not to serve any requested collection. If collection discovery failed, the unknown catalog can still be queried.
 3. **Translate names.** Each catalog's collection aliases translate your canonical query into local names.
-4. **Search concurrently.** The executor bounds concurrent catalog searches, applies timeouts and retries, and follows upstream pagination up to a per-catalog cap.
-5. **Normalize and combine.** Asset keys and collection IDs can be normalized. Items with the same ID can be collapsed, and failures are included in metadata.
+4. **Search in parallel.** SuperSTAC limits how many catalogs it queries at once, retries failed requests, and reads result pages up to the limit for each catalog.
+5. **Combine the results.** SuperSTAC can rename collections and assets using your aliases and remove duplicate item IDs. The response also lists any catalog failures.
 
 An empty `collections` list removes the collection filter; it does not select a default dataset.
 
-## What federation does not guarantee
+## Coverage and duplicate items
 
 Different providers may index different dates, use different item IDs for the same scene, or expose different assets. Searching two catalogs does not guarantee identical coverage or double the number of unique items.
 
-Deduplication uses **item ID only**. Equal IDs in unrelated collections can be collapsed; different IDs for the same physical scene remain separate. The first encountered item body is retained, without merging its asset dictionaries. Concurrent completion and storage ordering mean you should not rely on a particular provider winning.
+Deduplication uses **item ID only**. Equal IDs in unrelated collections can be collapsed; different IDs for the same physical scene remain separate. SuperSTAC keeps the first item it encounters and leaves its assets as they are. Which provider supplies that item can vary between searches.
 
-There is no global sort or stable pagination cursor across catalogs. See [search parameters](/docs/reference/search/) and [results](/docs/reference/results/) for exact semantics.
+There is no global sort or stable pagination cursor across catalogs. See [search parameters](/docs/reference/search/) and [results](/docs/reference/results/) for details.

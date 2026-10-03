@@ -1,13 +1,13 @@
 ---
 title: Search parameters
-description: Supported spatial, temporal, collection, and item filters and their exact limits.
+description: Choose collections, areas, dates, item limits, and sort order for a search.
 ---
 
-Python clients take keyword arguments. Rust uses `SearchQuery`. Both are translated into a STAC API search for each selected catalog.
+Pass filters as keyword arguments in Python or as a `SearchQuery` in Rust. In live mode, SuperSTAC sends them to each selected catalog. For saved metadata, see the [GeoParquet guide](/docs/guides/geoparquet).
 
 | Field | Python shape | Behavior |
 | --- | --- | --- |
-| `collections` | List of strings | Required by the Python query deserializer. Use canonical names, or `[]` for no collection filter. |
+| `collections` | List of strings | Required in Python. Use your configured collection names, or `[]` to search all collections. |
 | `ids` | List of strings, optional | Filter by item IDs. |
 | `bbox` | Coordinate list, optional | Bounding box. Use `[west, south, east, north]` in longitude/latitude for ordinary searches. |
 | `intersects` | GeoJSON geometry dictionary, optional | Spatial geometry, not a Feature or FeatureCollection. |
@@ -37,12 +37,12 @@ Choose either `bbox` or `intersects` for a query. Use a closed GeoJSON polygon r
 
 ## Limit and pagination
 
-SuperSTAC follows upstream pagination internally until it collects `min(limit, max_items_per_catalog)` items from each catalog. There is no exposed federated cursor or lazy Python pagination API.
+SuperSTAC reads result pages from each catalog until it reaches the smaller of `limit` and `max_items_per_catalog`, or there are no more items. Python receives the collected results at once; there is no cursor for requesting the next combined page.
 
-With three selected catalogs and `limit=10`, the engine may collect up to 30 items before deduplication. The final total is neither a complete match count nor guaranteed to equal your limit.
+With three catalogs and `limit=10`, you can get up to 30 items before duplicates are removed. The returned count can be smaller, and more matching items may exist in the catalogs.
 
 ## Unsupported options
 
-There is no implemented CQL2 filter, cloud-cover query, fields projection, global sort, or user-supplied search-header integration in the current engine path. Unknown Python dictionary keys may be ignored rather than rejected; only use the documented fields.
+Search does not yet support CQL2 or cloud-cover filters, selecting which fields to return, sorting the combined results, or custom request headers. Use only the fields listed above: unknown Python keys may be silently ignored.
 
 `SearchOptions` and `SearchRequest` exist in Rust source but are not wired into the engine's `search()` method. Do not treat their `headers` or `max_items` fields as active engine features.
