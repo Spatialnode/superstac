@@ -22,9 +22,10 @@
       </div>
       <div class="controls-body">
       <section role="tabpanel" id="panel-search" aria-labelledby="tab-search">
+        <details class="alias-demo"><summary>Start with an aerial example</summary><p>Explore an OpenAerialMap scene in Espoo, Finland. Preview its GeoTIFF directly on the map.</p><button id="try-aerial" type="button" class="secondary">Use aerial imagery example</button><p class="hint">Selects HOT OpenAerialMap for this search. Your other catalogs are kept.</p></details>
         <div class="sources-heading"><span>Selected catalogs</span><button id="manage-catalogs" class="quiet" type="button">Change</button></div><div id="active-catalogs"></div>
         <form id="search-form"><fieldset id="query-controls"><legend class="sr-only">Search filters</legend>
-          <label>Collections<input id="collections" value="sentinel-2-l2a" list="collection-suggestions" placeholder="All collections"><datalist id="collection-suggestions"><option value="sentinel-2-l2a"><option value="landsat-c2-l2"></datalist></label><p class="hint">Separate collection IDs with commas. Leave blank to search all.</p>
+          <div class="field-heading"><span>Imagery collection</span><button id="browse-collections" class="quiet" type="button">Browse collections</button></div><label><span class="sr-only">Collection IDs</span><input id="collections" value="sentinel-2-l2a" list="collection-suggestions" placeholder="All collections"><datalist id="collection-suggestions"><option value="sentinel-2-l2a"><option value="landsat-c2-l2"></datalist></label><p class="hint">A collection is a set of imagery, such as Sentinel-2. Browse your catalogs or enter IDs separated by commas.</p>
           <label>Area<select id="area"><option value="alps">French Alps</option><option value="barcelona">Barcelona coast</option><option value="nairobi">Nairobi</option><option value="custom">Custom bounding box</option><option value="anywhere">Anywhere</option></select></label>
           <div class="area-actions"><button id="use-map-area" class="secondary" type="button" disabled>Use visible map area</button><button id="fit-map" class="quiet" type="button" disabled>Show selected area</button></div><p class="hint">Choose an area and dates, then search below.</p>
           <div id="bbox-fields" class="two-col" hidden><label>West<input id="west" type="number" step="any" value="6" min="-180" max="180"></label><label>South<input id="south" type="number" step="any" value="45" min="-90" max="90"></label><label>East<input id="east" type="number" step="any" value="7" min="-180" max="180"></label><label>North<input id="north" type="number" step="any" value="46" min="-90" max="90"></label></div>
@@ -36,6 +37,7 @@
       </section>
       <section role="tabpanel" id="panel-catalogs" aria-labelledby="tab-catalogs" hidden>
         <h2>Catalogs & providers</h2><p class="hint">Turn catalogs on or off for the next search. Providers help keep your catalogs organized.</p>
+
         <div id="catalog-list"></div>
         <div class="toolbar"><button id="browse-index" class="primary" type="button">Browse STAC Index</button><button id="add-catalog" class="secondary" type="button">Add by URL</button><button id="discover" class="secondary" type="button">Find collections</button></div>
         <details id="connection-tools"><summary>Connection checks</summary><p class="hint">Check whether your selected catalogs respond.</p><button id="check-health" class="secondary" type="button">Check connections</button></details>
@@ -45,17 +47,18 @@
         <p class="hint">Changes stay in this tab. Removing a provider keeps its catalogs, listed as unassigned.</p></details>
       </section>
       <section role="tabpanel" id="panel-settings" aria-labelledby="tab-settings" hidden>
-        <button id="reset" class="quiet" type="button">Reset workspace</button>
+
         <h2>Search settings</h2><p class="hint">Applied to your next search. Defaults work for most public catalogs.</p>
         <form id="settings-form"><fieldset id="settings-controls"><legend class="sr-only">Federation settings</legend>
           <label class="check"><input id="deduplicate_items" type="checkbox" checked> Combine matching scene IDs</label>
           <label class="check"><input id="unify_response" type="checkbox" checked> Normalize collection and asset names</label>
-          <label>Catalogs at once<input id="max_concurrent_catalogs" type="number" min="1" max="64" value="8" required></label>
-          <label>Timeout per attempt (seconds)<input id="per_catalog_timeout_seconds" type="number" min="1" max="3600" value="30" required></label>
+          <label>Search this many catalogs at once<input id="max_concurrent_catalogs" type="number" min="1" max="64" value="8" required></label>
+          <label>Wait per attempt (seconds)<input id="per_catalog_timeout_seconds" type="number" min="1" max="3600" value="30" required></label>
           <label>Attempts per catalog<input id="max_retry_attempts" type="number" min="1" max="255" value="2" required><span class="hint">Includes the first attempt. Set to 1 to skip retries.</span></label>
           <label>Maximum scenes per catalog<input id="max_items_per_catalog" type="number" min="1" max="10000" value="1000" required></label>
 
         </fieldset></form>
+        <details><summary>Reset workspace</summary><p class="hint">Restore the starter catalogs, filters, and settings. This removes catalogs you added and clears the results.</p><button id="reset" class="secondary" type="button">Restore starter workspace</button></details>
       </section>
       </div>
       <div id="search-actions" class="controls-actions">
@@ -70,9 +73,9 @@
     <section id="results" class="results" aria-label="Search results" aria-busy="false">
       <div class="statusbar"><div id="status" role="status" aria-live="polite">Start with Find imagery to choose an area and dates.</div><div class="toolbar"><span id="operation-time" class="hint"></span><button id="open-activity" class="quiet" type="button" aria-expanded="false" aria-controls="activity-panel">Activity <span id="activity-count">0</span></button></div></div>
       <div id="viewer" class="viewer">
-        <div class="viewer-toolbar"><div><h2 id="viewer-title">Search area</h2><p id="viewer-caption" class="hint">Move the map to explore. Search to see scene footprints and imagery.</p></div><button id="close-map" class="quiet" type="button" hidden>Close preview</button></div>
+        <div class="viewer-toolbar"><div><h2 id="viewer-title">Search area</h2><p id="viewer-caption" class="hint">Move the map to explore. Search to see scene footprints and imagery.</p></div><button id="close-map" class="quiet" type="button" hidden>Back to results</button></div>
         <div id="map-placeholder" class="map-placeholder"><div id="overview-map" aria-label="Map of search area and scene footprints"></div><div id="map-fallback"><h3>Your search area</h3><p id="map-message">Loading map… You can search while it loads.</p><button id="retry-map" class="secondary" type="button" hidden>Retry map</button></div><div class="map-tools"><span id="map-legend">Blue outline · search area</span></div></div>
-        <div id="preview-controls" hidden><label for="preview-asset">Preview asset</label><select id="preview-asset"></select><p id="preview-status" role="status" class="hint"></p></div>
+        <div id="preview-controls" hidden><label for="preview-asset">Image layer</label><select id="preview-asset"></select><p id="preview-status" role="status" class="hint"></p></div>
         <div id="viewer-links" class="viewer-links" hidden></div>
       </div>
       <section id="activity-panel" class="activity-panel" aria-labelledby="activity-title" hidden><div class="activity-toolbar"><div><h2 id="activity-title">Activity</h2><p class="hint">See which catalogs responded, how long they took, and what needs attention.</p></div><button id="close-activity" class="quiet" type="button" aria-label="Close activity">×</button></div><div class="toolbar"><label class="sr-only" for="activity-filter">Filter activity</label><select id="activity-filter"><option value="all">All activity</option><option value="errors">Errors only</option></select><button id="copy-activity" class="secondary" type="button">Copy log</button><button id="clear-activity" class="quiet" type="button">Clear</button></div><p id="activity-empty" class="hint">Search, discover collections, or check connections to see requests here.</p><ol id="activity-list"></ol><p id="activity-note" role="status" class="hint"></p></section>

@@ -18,9 +18,15 @@ old files. Imagery and previews still come from the provider.
 [Try the notebook](/docs/v0.3/python/geoparquet-notebook) or follow the
 [GeoParquet guide](/docs/v0.3/guides/geoparquet).
 
-**Upgrading:** Python wheels include GeoParquet. For Rust and the CLI, enable the
-`geoparquet` feature. Existing version-1 inventories remain readable; writing an
-update upgrades their manifest to version 2, which older builds cannot read.
+<details>
+<summary>Using an inventory from an older release?</summary>
+
+You can read existing inventories without changing them. The next successful
+ingestion updates the inventory manifest from version 1 to version 2. Older
+SuperSTAC builds cannot read the updated manifest, so keep a backup if you need
+to switch back to an older build.
+
+</details>
 
 ## v0.2 — Python support
 

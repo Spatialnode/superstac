@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -19,6 +20,6 @@ export function CodePreviewTabs({ highlighted }: { highlighted: Record<keyof typ
       if (next >= 0) { event.preventDefault(); setTab(names[next]); setCopied(false); setCopyFailed(false); document.getElementById(`tab-${names[next]}`)?.focus(); }
     }} onClick={() => { setTab(name); setCopied(false); setCopyFailed(false); }}>{name}</button>)}</div><button onClick={copy} aria-label={copied ? 'Copied' : 'Copy example'}>{copied ? <Check size={15}/> : <Copy size={15}/>}</button></div>
     <div id="example-panel" role="tabpanel" aria-labelledby={`tab-${tab}`} tabIndex={0}>{highlighted[tab]}</div>
-    <div className="code-footer"><span aria-live="polite">{copyFailed ? 'Select the code to copy it manually.' : copied ? 'Copied to clipboard.' : 'See the quickstart for setup.'}</span><span>superstac</span></div>
+    <div className="code-footer"><span aria-live="polite">{copyFailed ? 'Select the code to copy it manually.' : copied ? 'Copied to clipboard.' : tab === 'JavaScript' ? 'Browser / WASM' : 'See the quickstart for setup.'}</span>{tab === 'JavaScript' ? <Link href="/docs/wasm/overview">Installation guide ↗</Link> : <span>superstac</span>}</div>
   </div>;
 }

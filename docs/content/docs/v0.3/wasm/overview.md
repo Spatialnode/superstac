@@ -7,29 +7,34 @@ The browser binding runs SuperSTAC's Rust search logic in your JavaScript app. R
 
 [Try the playground](/docs/v0.3/wasm/playground) to see it without installing anything.
 
-## Build the package
+## Install
 
-The browser package is currently built from source; it has not been published to npm. You need Rust 1.88 or newer.
+You do not need Rust to use SuperSTAC in a browser app. The browser package includes the compiled WebAssembly module and TypeScript declarations.
 
-From the repository root:
+The planned npm package name is `@spatialnode/superstac-wasm`. Once released, installation will be:
 
 ```bash
-rustup target add wasm32-unknown-unknown
-cargo install wasm-pack --version 0.13.1 --locked --jobs 1
-wasm-pack build crates/wasm --target web --release --locked --jobs 1
+npm install @spatialnode/superstac-wasm
 ```
 
-The generated package is in `crates/wasm/pkg`. Serve `superstac_wasm.js` and `superstac_wasm_bg.wasm` together over HTTP or HTTPS. The `.d.ts` file supplies TypeScript types. Build commands use one Cargo worker to limit resource use.
+For now, use a prebuilt package from a successful [WASM checks workflow run](https://github.com/spatialnode/superstac/actions/workflows/wasm.yml):
+
+1. Open a successful run and download the **wasm-web** artifact. GitHub requires sign-in to download workflow artifacts; they are available until they expire.
+2. Extract it into `vendor/superstac-wasm` in your app. The folder should contain `package.json`, `superstac_wasm.js`, `superstac_wasm_bg.wasm`, and `superstac_wasm.d.ts`.
+3. Install it from your app’s root:
+
+```bash
+npm install ./vendor/superstac-wasm
+```
+
+This installs the same `@spatialnode/superstac-wasm` import used below, without compiling anything. Use an artifact built with the `spatialnode` npm scope; older artifacts may have an unscoped package name or lack `package.json`. If no artifact is available, [try the playground](/docs/v0.3/wasm/playground) or see the optional [source build guide](/docs/v0.3/wasm/development).
 
 ## Search two catalogs
 
-Examples use the intended npm package name, `superstac-wasm`, as it would appear
-in an application. Until the package is published, build it above and configure
-your app to resolve that name to the generated package, or import the generated
-JavaScript module directly when serving the files without a bundler.
+Put this in your app’s browser code. For frameworks with server rendering, initialize the client on the browser side. Your bundler must serve the package’s `.wasm` file alongside its JavaScript module.
 
 ```js
-import init, { SuperSTAC } from 'superstac-wasm';
+import init, { SuperSTAC } from '@spatialnode/superstac-wasm';
 
 await init();
 const client = new SuperSTAC({

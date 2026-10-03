@@ -351,3 +351,12 @@ body[data-controls=open] .map-tools { left: 358px; }
   .code-heading, .code-actions { padding: 14px 16px; }
   #code { padding: 16px; font-size: 13px; }
 }
+
+.field-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; font-size: 13px; font-weight: 550; }
+.field-heading button { color: var(--accent); font-size: 12px; }
+#panel-search>.alias-demo { margin: 0 0 18px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); }
+.controls-overlay .controls-body { scroll-padding: 16px; }
+.controls-overlay input[type=checkbox] { width: 18px; height: 18px; }
+.scene-body h3 { font-size: 15px; }
+.scene-body>.hint, .scene-actions, .result-overlay-bar, .result-overlay-bar button { font-size: 12px; }
+.scene-actions .primary { padding: 10px 12px; font-size: 13px; }

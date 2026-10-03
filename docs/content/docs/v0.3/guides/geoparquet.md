@@ -12,11 +12,7 @@ For a runnable Python example, [open the notebook](/docs/v0.3/python/geoparquet-
 The CLI examples below use a catalog named `earth-search` in `superstac.yml` and
 its configured collection name, `sentinel-2-l2a`.
 
-Python wheels include GeoParquet. To build the CLI with it:
-
-```sh
-cargo build -p superstac-cli --features geoparquet
-```
+For setup, see [installation](/docs/v0.3/start/installation).
 
 ## Save your first inventory
 
@@ -202,5 +198,4 @@ print(json.loads(footer.metadata[b"superstac"]))
 For bug reports, include `superstac --version` or Python’s `superstac.__version__`.
 Search diagnostics also include `metadata.superstac_version`.
 
-Version-1 inventories remain readable. Their next successful ingestion writes a
-version-2 manifest, which older SuperSTAC builds cannot read.
+Reusing an inventory from an older release? See the [upgrade notes](/docs/v0.3/releases).

@@ -31,6 +31,7 @@ function updateCode() {
 function changed() { catalogs.render(); updateCode(); $('discovery').replaceChildren(); activity.log('Workspace updated', `${state.catalogs.length} catalogs · ${state.providers.length} providers`, { ms: 0 }); }
 function tab(name, focus = false) {
   controlsPanel(true);
+  document.querySelector('.controls-body').scrollTop = 0;
   $('search-actions').hidden = name !== 'search';
   $('settings-actions').hidden = name !== 'settings';
   document.querySelectorAll('[data-tab]').forEach(b => {
@@ -38,6 +39,11 @@ function tab(name, focus = false) {
     $(`panel-${b.dataset.tab}`).hidden = !active; if (active && focus) b.focus();
   });
 }
+$('browse-collections').addEventListener('click', () => {
+  if (busy) return;
+  tab('catalogs', true); $('discover').click();
+});
+document.addEventListener('playground:edit-search', () => tab('search', true));
 $('manage-catalogs').addEventListener('click', () => tab('catalogs', true));
 function controlsPanel(open, focus = false) {
   $('workspace-controls').hidden = !open;
@@ -68,9 +74,9 @@ tabs.forEach((b, i) => {
 });
 function lock(value) {
   busy = value;
-  for (const id of ['search-button', 'apply-settings', 'reset-settings']) $(id).disabled = value;
+  for (const id of ['search-button', 'apply-settings', 'reset-settings', 'browse-collections']) $(id).disabled = value;
   $('query-controls').disabled = value; $('settings-controls').disabled = value; $('reset').disabled = value;
-  $('try-aliases').disabled = value; $('results').setAttribute('aria-busy', String(value)); catalogs.render();
+  $('try-aerial').disabled = value; $('try-aliases').disabled = value; $('results').setAttribute('aria-busy', String(value)); catalogs.render();
 }
 async function clientFor(config) {
   if (!wasm) {
@@ -104,7 +110,7 @@ $('discover').addEventListener('click', async () => {
   lock(true); $('discovery').textContent = 'Finding collections…';
   try {
     client = await clientFor(config); const response = await client.listCollections();
-    $('discovery').replaceChildren(); const suggestions = new Set();
+    $('discovery').replaceChildren(); $('discovery').scrollIntoView({ block: 'nearest' }); const suggestions = new Set();
     for (const result of response) {
       const group = el('details', undefined, 'collection-group'); group.open = response.length === 1;
       group.append(el('summary', `${state.catalogs.find(c => c.id === result.catalog_id)?.name ?? result.catalog_id} · ${result.collections.length} collections`));
@@ -119,10 +125,30 @@ $('discover').addEventListener('click', async () => {
       }
       group.append(list); $('discovery').append(group);
     }
+    if (!$('discovery').children.length) $('discovery').textContent = 'No collections were found. Check the selected catalogs or add another catalog.';
+    $('discovery').scrollIntoView({ block: 'nearest' });
     activity.finish(`${response.reduce((sum, r) => sum + r.collections.length, 0)} collections found`, response.some(r => r.error));
     $('collection-suggestions').replaceChildren(...[...suggestions].map(id => new Option(id, id)));
   } catch (error) { activity.finish('Collection discovery failed', true); $('discovery').textContent = `Collections could not load. ${errorMessage(error)}`; }
   finally { client?.free(); lock(false); }
+});
+$('try-aerial').addEventListener('click', () => {
+  if (busy) return;
+  const url = 'https://api.imagery.hotosm.org/stac';
+  state.catalogs.forEach(c => { c.enabled = false; });
+  let catalog = state.catalogs.find(c => c.url.replace(/\/$/, '') === url);
+  if (!catalog) {
+    let id = 'hot-openaerialmap';
+    while (state.catalogs.some(c => c.id === id)) id += '-example';
+    catalog = { id, name: 'HOT OpenAerialMap', url, provider: '', collection_aliases: {}, asset_aliases: {} };
+    state.catalogs.push(catalog);
+  }
+  catalog.enabled = true;
+  $('search-form').reset(); $('collections').value = ''; $('area').value = 'anywhere';
+  $('from').value = ''; $('to').value = ''; $('limit').value = '1';
+  $('ids').value = '65cdcbd8-34f8-42d3-a758-1ebb69d3b149';
+  changed(); tab('search', true);
+  $('status').textContent = 'Aerial example ready. Search, then choose Preview on map to explore the GeoTIFF.';
 });
 $('try-aliases').addEventListener('click', () => {
   if (busy) return;
@@ -155,12 +181,18 @@ function activityPanel(open) {
 $('open-activity').addEventListener('click', () => activityPanel($('activity-panel').hidden));
 $('close-activity').addEventListener('click', () => activityPanel(false));
 $('activity-panel').addEventListener('keydown', event => { if (event.key === 'Escape') activityPanel(false); });
+$('settings-form').addEventListener('input', () => {
+  $('settings-status').textContent = 'Unsaved changes. Apply settings to use them in searches and code.';
+  $('apply-settings').textContent = 'Apply changes';
+});
 function showSettings() {
+  $('apply-settings').textContent = 'Apply settings';
   for (const [key, value] of Object.entries(state.settings)) { if (typeof value === 'boolean') $(key).checked = value; else $(key).value = value; }
 }
 $('settings-form').addEventListener('submit', event => {
   event.preventDefault(); if (busy) return;
   state.settings = Object.fromEntries(Object.entries(DEFAULT_SETTINGS).map(([key, value]) => [key, typeof value === 'boolean' ? $(key).checked : Number($(key).value)]));
+  $('apply-settings').textContent = 'Apply settings';
   updateCode(); activity.log('Settings applied', 'The next search will use these settings.', { ms: 0 }); $('settings-status').textContent = 'Settings applied to your next search.';
 });
 $('reset-settings').addEventListener('click', () => {

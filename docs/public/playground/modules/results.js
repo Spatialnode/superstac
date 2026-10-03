@@ -22,9 +22,10 @@ export function resultView(overview) {
     $('viewer-links').replaceChildren(...(links ? [link('Open in STAC Map ↗', links.map), link('Open in STAC Browser ↗', links.browser)] : []));
     $('viewer-links').hidden = !links;
     const base = href ?? selected.catalogs.find(c => c.id === entry.catalog_id)?.url + '/';
-    assets = previewAssets(entry.item, base);
+    const catalog = selected.catalogs.find(c => c.id === entry.catalog_id);
+    assets = previewAssets(entry.item, base, selected.unify ? catalog?.asset_aliases?.[entry.item.collection] : {});
     $('preview-asset').replaceChildren(new Option('Footprint only', ''), ...assets.map(a => new Option(`${a.title}${a.cog ? ' · GeoTIFF' : ' · image'}`, a.id)));
-    const first = assets.find(a => a.thumbnail) ?? assets.find(a => !a.cog);
+    const first = assets.find(a => a.tilejson && a.id === 'visual') ?? assets.find(a => a.tilejson) ?? assets.find(a => a.thumbnail) ?? assets.find(a => !a.cog);
     $('preview-asset').value = first?.id ?? '';
     $('preview-controls').hidden = false; overview.preview(entry, first);
     $('viewer').scrollIntoView({ behavior: 'instant', block: 'nearest' });
@@ -95,7 +96,9 @@ export function resultView(overview) {
       }
       card.append(body); $('scenes').append(card);
     }
-    if (!response.items.length) $('scenes').append(el('p', response.metadata.catalogs_succeeded ? 'No scenes matched. Try a wider date range or another area.' : 'No catalog returned results. See the catalog details above.', 'hint'));
+    if (!response.items.length) {
+      $('scenes').append(el('p', response.metadata.catalogs_succeeded ? 'No scenes matched. Try a wider date range or another area.' : 'No catalog returned results. Check the catalog details above or try another catalog.', 'hint'), button('Adjust search', () => document.dispatchEvent(new Event('playground:edit-search'))));
+    }
     const pages = Math.ceil(response.items.length / pageSize);
     $('pagination').hidden = pages <= 1; $('previous').disabled = page === 0; $('next').disabled = page >= pages - 1;
     $('page-label').textContent = `Page ${page + 1} of ${pages}`;
@@ -109,7 +112,7 @@ export function resultView(overview) {
   $('toggle-results').addEventListener('click', () => collapseResults(!$('result-body').hidden));
   $('previous').addEventListener('click', () => { if (page > 0) { page--; cards(); } });
   $('next').addEventListener('click', () => { if ((page + 1) * pageSize < response.items.length) { page++; cards(); } });
-  $('close-map').addEventListener('click', closeMap);
+  $('close-map').addEventListener('click', () => { closeMap(); collapseResults(false); $('toggle-results').focus({ preventScroll: true }); });
   return {
     collapse: () => collapseResults(true),
     preview(index) {

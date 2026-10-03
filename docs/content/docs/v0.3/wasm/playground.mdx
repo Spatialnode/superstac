@@ -10,11 +10,11 @@ The map fills the playground. Search controls, scene results, and activity open 
 ## Set up a search
 
 1. Open **Find imagery**, then **Catalogs**. Choose **Browse STAC Index** to search the public API directory by name, place, or topic. Choose a catalog, review its details, and save it. Or use **Add by URL** to enter any browser-accessible STAC API URL. In **Catalogs**, edit, remove, or select catalogs. Providers are labels for organizing catalogs; removing a provider keeps its catalogs. Open a catalog’s editor to set collection and asset aliases. Provider editors accept an optional logo URL; initials appear when the logo is missing or unavailable.
-2. Use **Find collections** to browse each selected catalog. Choose a collection to put its ID into the search form.
+2. Use **Browse collections** beside the collection field to browse each selected catalog. **Find collections** is also available in Catalogs. Choose a collection to put its ID into the search form.
 3. Pan and zoom the map, then open **Find imagery** and choose **Use visible map area**, or select a preset area. Choose dates and click **Search scenes**. Close the panel with **×** to return to the map. The **Search scenes** button stays at the bottom of the panel while filters scroll. Starting a search closes the controls. You can also enter a bounding box, scene IDs, sorting, or a GeoJSON geometry. A geometry replaces the selected area.
-4. In **Settings**, adjust deduplication, alias normalization, concurrent catalogs, timeout, attempts, and the item cap. Click **Apply settings** before searching.
+4. In **Settings**, adjust deduplication, alias normalization, concurrent catalogs, timeout, attempts, and the item cap. Click **Apply settings** before searching. Edits are marked as unsaved until you apply them.
 
-Settings and catalogs stay in the current tab until you reload. **Reset workspace** in Settings resets the workspace. Custom catalogs must allow browser requests (CORS).
+Settings and catalogs stay in the current tab until you reload. **Settings → Reset workspace → Restore starter workspace** restores the starter catalogs, filters, and settings. Custom catalogs must allow browser requests (CORS).
 
 ## Try collection and asset aliases
 
@@ -26,9 +26,9 @@ The directory loads from the [STAC Index API](https://stacindex.org/api/catalogs
 
 ## Explore scenes
 
-Results appear in a collapsible panel over the map, keeping the map full-size. Selecting a scene hides the panel; **Show results** brings it back.
+Results appear in a collapsible panel over the map, keeping the map full-size. Selecting a scene hides the panel; **Show results** brings it back. **Back to results** closes the preview and reopens the scene list.
 
-Each card tries the thumbnail first, then the catalog’s rendered preview or another image if the thumbnail is missing or fails to load. It also shows capture date, cloud cover, assets, and source catalogs. **Preview on map** opens the scene on the OpenFreeMap basemap. Choose an image or GeoTIFF from **Preview asset**. Image previews are positioned over the scene bounds for a quick look; their alignment is approximate. GeoTIFF previews use the file’s georeferencing and load only when selected.
+Each card tries the thumbnail first, then the catalog’s rendered preview or another image if the thumbnail is missing or fails to load. It also shows capture date, cloud cover, assets, and source catalogs. **Preview on map** opens the scene on the OpenFreeMap basemap. Choose an image or GeoTIFF from **Image layer**. Image previews are positioned over the scene bounds for a quick look; their alignment is approximate. GeoTIFF previews load only when selected. HOT OpenAerialMap scenes use the catalog’s raster service to render and reproject imagery as map tiles. Other GeoTIFFs use the direct reader, which requires Web Mercator (EPSG:3857), CORS, and HTTP range support.
 
 The overview map shows the search area and available scene footprints. Click a footprint or a scene’s preview button to select it. You can also open the original scene in STAC Map or STAC Browser in a new tab; those external services choose their own basemaps. The playground does not embed either service.
 
@@ -37,6 +37,12 @@ Preview support depends on asset encoding, CORS, HTTP range support, and any sig
 By default, matching item IDs become one record with both source labels. The scene limit applies to each catalog: five scenes from each of two catalogs can produce up to ten results. Cloud cover describes the whole scene, which may be larger than your search area.
 
 If one catalog fails, results from the others still appear. The page distinguishes a failed request from a successful search with no matches. **Full search response** shows the returned JSON.
+
+## Preview aerial GeoTIFFs
+
+Open **Find imagery → Start with an aerial example** and choose **Use aerial imagery example**. Run the search, then choose **Preview on map**. The example selects one OpenAerialMap scene in Espoo, Finland, and opens its rendered GeoTIFF layer automatically. Zoom in to see more detail; **Image layer** lets you switch assets or return to the footprint.
+
+The [HOT catalog](https://api.imagery.hotosm.org/stac) supplies the scene metadata. Its [raster service](https://api.imagery.hotosm.org/raster/api.html) renders the GeoTIFF into map tiles, so the browser does not download the whole file. Thumbnails remain ordinary browser images. Availability depends on the catalog and its raster service.
 
 ## Activity, timing, and catalog status
 
@@ -52,4 +58,4 @@ Requests use the browser’s User-Agent, which does not identify SuperSTAC. Brow
 
 ## Use the same search in your app
 
-Choose **View code** at the top of the controls to open a full-size example with a **Copy code** button. The example updates with your selected catalogs, applied settings, and current filters. It uses the intended npm import, `superstac-wasm`, as it would appear in a consuming application. See the [browser guide](/docs/v0.3/wasm/overview) for current build and installation instructions.
+Choose **View code** at the top of the controls to open a full-size example with a **Copy code** button. The example updates with your selected catalogs, applied settings, and current filters. It uses `@spatialnode/superstac-wasm`, the same import for a prebuilt package or an npm release. See the [browser guide](/docs/v0.3/wasm/overview) for installation without a Rust toolchain.

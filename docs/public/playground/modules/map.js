@@ -62,11 +62,15 @@ export function overviewMap(onArea, onScene) {
     if (!ready) { $('preview-status').textContent = 'Wait for the map to load, or open an external viewer.'; return; }
     removePreview();
     const bounds = geometryBounds(entry.item.geometry) ?? (entry.item.bbox?.length === 4 ? entry.item.bbox : null);
-    if (bounds) map.fitBounds([[bounds[0], bounds[1]], [bounds[2], bounds[3]]], { padding: 90, duration: 0, maxZoom: 13 });
+    if (bounds) map.fitBounds([[bounds[0], bounds[1]], [bounds[2], bounds[3]]], { padding: 90, duration: 0, maxZoom: 18 });
     if (!asset) { $('preview-status').textContent = 'Scene footprint. Choose an image asset to preview it.'; return; }
     try {
       $('preview-status').dataset.state = 'loading'; $('preview-status').textContent = 'Loading asset…';
-      if (asset.cog) {
+      if (asset.tilejson) {
+        map.addSource('asset-preview', { type: 'raster', url: asset.tilejson, tileSize: 256,
+          attribution: '<a href="https://openaerialmap.org/" target="_blank" rel="noopener">OpenAerialMap</a>' });
+        $('preview-status').textContent = 'GeoTIFF rendered by OpenAerialMap. Zoom in to explore the imagery.';
+      } else if (asset.cog) {
         await cogProtocol(); if (version !== previewVersion || !ready) return;
         map.addSource('asset-preview', { type: 'raster', url: `cog://${asset.href}`, tileSize: 256 });
         $('preview-status').textContent = 'GeoTIFF preview. Availability depends on CORS, range requests, and the file’s encoding.';
@@ -121,7 +125,7 @@ export function overviewMap(onArea, onScene) {
       }
       map.on('sourcedata', event => { if (event.sourceId === 'asset-preview' && event.isSourceLoaded) $('preview-status').dataset.state = 'ready'; });
       map.on('error', event => {
-        if (event.sourceId === 'asset-preview' || currentPreview?.asset) { $('preview-status').dataset.state = 'error'; $('preview-status').textContent = 'This asset could not be displayed. Try another asset or an external viewer.'; }
+        if (event.sourceId === 'asset-preview') { $('preview-status').dataset.state = 'error'; $('preview-status').textContent = 'This asset could not be displayed. Try another asset or an external viewer.'; }
         else $('map-legend').textContent = 'Some map tiles could not load. Search is still available.';
       });
     } catch { failure(); }

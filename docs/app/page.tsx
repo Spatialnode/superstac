@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import { HomeLayout } from 'fumadocs-ui/layouts/home';
-import { ArrowRight, ArrowUpRight, Braces, Layers, Terminal, GitMerge, Scan, BookOpen } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Braces, Layers, Terminal, Scan } from 'lucide-react';
 import { baseOptions } from '@/lib/layout.shared';
 import { FederationMap } from '@/components/federation-map';
 import { CodePreview } from '@/components/code-preview';
-import { InventoryDemo } from '@/components/inventory-demo';
 import { PoweredBySpatialnode } from '@/components/powered-by-spatialnode';
 import type { Metadata } from 'next';
+import styles from './landing.module.css';
 
 const socialTitle = 'SuperSTAC — Many catalogs. One search.';
 const socialDescription = 'Find satellite imagery across catalogs, combine results, and save study-area metadata for repeated searches with fewer API requests.';
@@ -46,124 +46,71 @@ const guides = [
 export default function Home() {
   return (
     <HomeLayout {...baseOptions()}>
-      <div className="landing" id="main-content">
-        <section className="landing-hero">
-          <div className="hero-copy">
-            <Link href="/docs/releases" className="release-pill">
-              <span className="tiny-dot" /> v0.3 · What’s new <ArrowUpRight size={12} />
-            </Link>
-            <h1>Many catalogs.<br /><span>One search.</span></h1>
-            <p className="hero-description">Find satellite imagery across providers with one query. Combine the results, save the metadata you need, and explore it again with fewer API requests.</p>
-            <div className="hero-actions">
-              <a href="/superstac/playground" className="button-primary">Open playground <ArrowRight size={16} /></a>
-              <Link href="/docs/start/installation" className="button-secondary"><BookOpen size={16} /> Installation</Link>
-            </div>
-            <div className="hero-install"><span aria-hidden="true">$</span><code>pip install superstac</code></div>
+      <div className={styles.landing} id="main-content">
+        <section className={styles.hero} aria-labelledby="home-title">
+          <Link href="/docs/releases" className={styles.release}>v0.3 · What’s new <ArrowRight size={13} aria-hidden="true" /></Link>
+          <h1 id="home-title">Many catalogs.<br />One search.</h1>
+          <p>Search satellite imagery across STAC catalogs.<br className={styles.desktopBreak} /> Get combined results, with a source for every scene.</p>
+          <div className={styles.actions}>
+            <a href="/superstac/playground" className={styles.primary}>Open playground <ArrowRight size={16} aria-hidden="true" /></a>
+            <Link href="/docs/start/quickstart" className={styles.secondary}>Get started</Link>
           </div>
-          <FederationMap />
+          <p className={styles.heroNote}>Open source. Built in Rust. Use it from Python, JavaScript, Rust, or the CLI.</p>
         </section>
 
-        <section className="start-section" aria-labelledby="benefits-title">
-          <div className="section-intro">
-            <h2 id="benefits-title">Find imagery. Keep the metadata you need.</h2>
-            <p>Search from a browser app, Python notebook, Rust application, or the command line.</p>
+        <section className={styles.example} aria-labelledby="example-title">
+          <div className={styles.exampleCopy}>
+            <span className={styles.eyebrow}>One query, multiple sources</span>
+            <h2 id="example-title">Start with the catalogs you need.</h2>
+            <p>Run your query. SuperSTAC combines the results across catalogs.</p>
+            <div className={styles.diagram}><FederationMap /></div>
+            <Link href="/docs/start/quickstart" className={styles.textLink}>Walk through a search <ArrowRight size={15} aria-hidden="true" /></Link>
           </div>
-          <div className="path-cards">
-            <Link className="path-card" href="/docs/concepts/federation">
-              <Scan className="path-icon" size={23} />
-              <h3>Search across providers</h3>
-              <p>Query relevant catalogs concurrently and receive combined results, with visibility into which sources responded or failed.</p>
-              <span className="path-link">How federation works <ArrowRight size={15} /></span>
-            </Link>
-            <Link className="path-card" href="/docs/guides/geoparquet">
-              <Layers className="path-icon" size={23} />
-              <h3>Save once. Explore repeatedly.</h3>
-              <p>Save your study-area metadata to GeoParquet and reuse it across searches. Automatic mode checks live catalogs when the saved data is too old or doesn’t cover your query.</p>
-              <span className="path-link">Build your inventory <ArrowRight size={15} /></span>
-            </Link>
-            <Link className="path-card" href="/docs/start/quickstart">
-              <GitMerge className="path-icon" size={23} />
-              <h3>Spend less time combining results</h3>
-              <p>Configure collection and asset aliases, remove duplicate item IDs, and pass STAC metadata into your existing analysis workflow.</p>
-              <span className="path-link">Run your first search <ArrowRight size={15} /></span>
-            </Link>
-          </div>
+          <CodePreview />
         </section>
 
-        <section className="code-section" aria-labelledby="inventory-title">
-          <div className="code-section-copy">
-            <h2 id="inventory-title">Keep exploring the same study area.</h2>
-            <p>Exploring the same region over multiple sessions? Save its catalog metadata to GeoParquet, then refine your searches locally. Scope ingestion by collection, area, and time so you only collect what you need.</p>
-            <ul>
-              <li><Layers size={18} /><span>Follow ingestion progress, set a storage limit, and resume interrupted work.</span></li>
-              <li><Scan size={18} /><span>Search the saved coverage locally; let automatic mode fall back to live catalogs when needed.</span></li>
-              <li><GitMerge size={18} /><span>Add recent dates and clean up old files as your project grows.</span></li>
-            </ul>
-            <p>Inventories store metadata. Imagery previews and downloads still use the provider’s assets.</p>
-            <Link href="/docs/python/geoparquet-notebook" className="text-link">Try the GeoParquet notebook <ArrowRight size={15} /></Link>
-          </div>
-          <div className="code-section-copy">
-            <InventoryDemo />
-            <h3 className="benchmark-heading">How fast is local search?</h3>
-            <p>Our benchmark measures how skipping irrelevant data speeds up a selective search over 100,000 synthetic items. See the results and run it yourself.</p>
-            <Link href="/docs/guides/benchmarks" className="text-link">Explore the benchmark <ArrowRight size={15} /></Link>
-          </div>
-        </section>
-
-        <section className="start-section" aria-labelledby="choose-title">
-          <div className="section-intro"><h2 id="choose-title">Guides</h2></div>
-          <div className="path-cards interface-cards">
+        <section className={styles.guides} aria-labelledby="guides-title">
+          <div className={styles.sectionHeading}><h2 id="guides-title">Use it where you work.</h2><p>Pick your interface.</p></div>
+          <div className={styles.guideGrid}>
             {guides.map(({ icon: Icon, ...guide }) => (
-              <Link className="path-card" href={guide.href} key={guide.title}>
-                <Icon className="path-icon" size={23} />
-                <h3>{guide.title}</h3>
+              <Link className={styles.guide} href={guide.href} key={guide.title}>
+                <Icon size={20} aria-hidden="true" />
+                <h3>{guide.title} <ArrowUpRight size={15} aria-hidden="true" /></h3>
                 <p>{guide.text}</p>
-                <span className="path-link">Read the guide <ArrowRight size={15} /></span>
               </Link>
             ))}
           </div>
         </section>
 
-        <section className="code-section" aria-labelledby="example-title">
-          <div className="code-section-copy">
-            <h2 id="example-title">Search example</h2>
-            <p>Register the catalogs you want to search, then query a collection. SuperSTAC sends the request to the relevant catalogs and combines their results.</p>
-            <ul>
-              <li><Scan size={18} /><span>Filter by location and date.</span></li>
-              <li><GitMerge size={18} /><span>Normalize collection and asset names, and remove duplicate item IDs.</span></li>
-              <li><Layers size={18} /><span>Check which catalogs responded and which failed.</span></li>
-            </ul>
-            <Link href="/docs/start/quickstart" className="text-link">Full example and configuration <ArrowRight size={15} /></Link>
+        <section className={styles.inventory} aria-labelledby="inventory-title">
+          <div><h2 id="inventory-title">Same area. More questions.</h2><p>Save catalog metadata to GeoParquet and search it locally. Keep refining your study area without repeating every API request.</p></div>
+          <div className={styles.inventoryLinks}>
+            <Link href="/docs/guides/geoparquet" className={styles.textLink}>Work with saved metadata <ArrowRight size={15} aria-hidden="true" /></Link>
+            <Link href="/docs/guides/benchmarks" className={styles.benchmark}>
+              <strong>4.2 ms <span>local search</span></strong>
+              <span>Selective query · 100,000 synthetic items</span>
+              <span>Median of 5 runs on an M3 Pro. Excludes ingestion.</span>
+              <span className={styles.benchmarkLink}>See benchmark and methodology <ArrowUpRight size={14} aria-hidden="true" /></span>
+            </Link>
           </div>
-          <CodePreview />
         </section>
-
-        <section className="article-section" aria-labelledby="article-title">
-          <div className="section-intro">
-            <h2 id="article-title">Why SuperSTAC?</h2>
-            <p>The pipeline problem that led to SuperSTAC, and the thinking behind it.</p>
-          </div>
-          <a href="https://www.spatialnode.net/articles/introducing-superstac-many-catalogs-one-search2a5e11" className="text-link">
-            Read the story on Spatialnode <ArrowUpRight size={15} aria-hidden="true" />
-          </a>
-        </section>
-
-        <section className="reference-banner" aria-labelledby="reference-title">
-          <h2 id="reference-title">Reference</h2>
+        <section className={styles.foundations} aria-labelledby="foundations-title">
           <div>
-            <Link href="/docs/reference/configuration">Configuration <ArrowUpRight size={16} /></Link>
-            <Link href="/docs/python/api">Python API <ArrowUpRight size={16} /></Link>
-            <Link href="/docs/reference/troubleshooting">Troubleshooting <ArrowUpRight size={16} /></Link>
+            <h2 id="foundations-title">Built on STAC. Powered by Rust.</h2>
+            <p>Part of the open-source STAC ecosystem. SuperSTAC uses rustac’s <code>stac</code> types and <code>stac-io</code> for native catalog requests.</p>
           </div>
+          <nav aria-label="Standards and open-source foundations">
+            <a href="https://stacspec.org/">STAC <ArrowUpRight size={14} aria-hidden="true" /><span>The catalog standard</span></a>
+            <a href="https://rust-lang.org/">Rust <ArrowUpRight size={14} aria-hidden="true" /><span>The search engine’s language</span></a>
+            <a href="https://github.com/stac-utils/rustac">rustac <ArrowUpRight size={14} aria-hidden="true" /><span>STAC libraries for Rust</span></a>
+          </nav>
         </section>
-        <div className="alpha-note">
-          <span className="tiny-dot" />
-          <p>SuperSTAC is in alpha. APIs and configuration may change. <Link href="/docs/reference/status">Current limitations →</Link></p>
-        </div>
+
+        <p className={styles.alpha}>SuperSTAC is in alpha. <Link href="/docs/reference/status">See current limitations.</Link></p>
       </div>
-      <footer className="site-footer">
+      <footer className={styles.footer}>
         <PoweredBySpatialnode />
-        <div><a href="https://github.com/spatialnode/superstac">GitHub ↗</a><a href="https://github.com/spatialnode/superstac/blob/main/LICENSE">MIT license ↗</a></div>
+        <nav aria-label="Project links"><a href="https://www.spatialnode.net/articles/introducing-superstac-many-catalogs-one-search2a5e11">Why SuperSTAC?</a><a href="https://github.com/spatialnode/superstac">GitHub</a><a href="https://github.com/spatialnode/superstac/blob/main/LICENSE">MIT license</a></nav>
       </footer>
     </HomeLayout>
   );

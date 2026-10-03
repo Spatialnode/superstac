@@ -9,7 +9,7 @@ Choose JavaScript for browser apps, Python for notebooks and scripts, Rust for n
 
 [Try a live search](/docs/v0.3/wasm/playground) without installing anything. To use
 it in your app, follow the [browser package guide](/docs/v0.3/wasm/overview).
-The browser package is currently built from source.
+The browser guide covers prebuilt package installation without a Rust toolchain.
 
 ## Python
 
@@ -17,7 +17,7 @@ The browser package is currently built from source.
 python -m pip install "superstac>=0.3,<0.4"
 ```
 
-You need **Python 3.9 or newer**.
+You need **Python 3.9 or newer**. Published Python wheels include GeoParquet support.
 
 Verify the import:
 
@@ -48,6 +48,12 @@ cargo add superstac-core@0.3 superstac-config@0.3 superstac-search@0.3 superstac
 cargo add tokio --features macros,rt-multi-thread
 ```
 
+For GeoParquet inventories, enable the engine’s optional feature:
+
+```bash
+cargo add superstac-engine@0.3 --features geoparquet
+```
+
 These docs target SuperSTAC 0.3. See the [Rust guide](/docs/v0.3/rust/overview/).
 
 ## Command-line tool
@@ -67,6 +73,14 @@ Or build without installing:
 ```bash
 cargo build --release -p superstac-cli
 ./target/release/superstac --help
+```
+
+To include GeoParquet inventory commands, add `--features geoparquet`:
+
+```bash
+cargo install --path crates/cli --features geoparquet
+# Or build without installing:
+cargo build --release -p superstac-cli --features geoparquet
 ```
 
 The executable is named `superstac`; the Rust package is `superstac-cli`.
