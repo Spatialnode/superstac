@@ -75,3 +75,4 @@ ideas/
 .env
 .env.local
 .pnpm-store/
+node_modules/

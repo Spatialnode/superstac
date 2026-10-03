@@ -175,3 +175,69 @@ button { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   .query-packet, .result-packet, .diagram-animation-toggle { display: none; }
 }
+
+/* Highlighted markup is generated on the server; no highlighter ships to the browser. */
+.code-preview pre { background: transparent !important; margin: 0; }
+.code-preview pre code { font: inherit; }
+.code-preview .line { display: inline; }
+
+/* Catalogs respond as the outgoing packet arrives, then the combined response lights up. */
+@media (prefers-reduced-motion: no-preference) {
+  .catalog-node { animation: catalog-response 6s ease-in-out infinite; }
+  .catalog-two { animation-delay: .25s; }
+  .catalog-three { animation-delay: .5s; }
+  .map-result { animation: combined-response 6s ease-in-out infinite; }
+}
+@keyframes catalog-response {
+  0%, 34%, 72%, 100% { border-color: var(--line); box-shadow: none; }
+  42%, 58% { border-color: var(--brand); box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 10%, transparent); }
+}
+@keyframes combined-response {
+  0%, 72%, 100% { transform: translateY(0); opacity: .6; }
+  86%, 94% { transform: translateY(-3px); opacity: 1; }
+}
+.federation-map[data-paused='true'] *, .inventory-demo[data-paused='true'] * { animation-play-state: paused !important; }
+
+.inventory-demo { border: 1px solid var(--line); border-radius: 24px; padding: 24px; background: var(--surface); }
+.inventory-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 14px; font-weight: 600; color: var(--ink); }
+.inventory-heading .diagram-animation-toggle { position: static; flex-shrink: 0; }
+.inventory-story { max-width: 360px; margin: 24px auto; }
+.inventory-source { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 12px; color: var(--muted); }
+.inventory-transfer { position: relative; height: 42px; width: 1px; margin: auto; background: var(--line); }
+.inventory-transfer span { position: absolute; width: 5px; height: 8px; left: -2px; border-radius: 3px; background: var(--brand); opacity: 0; }
+.inventory-store { display: flex; gap: 14px; align-items: center; border: 1px solid var(--line); border-radius: 12px; padding: 18px; background: var(--color-fd-card); color: var(--brand); }
+.inventory-store strong { display: block; color: var(--ink); font-size: 14px; }
+.inventory-store div span { display: block; font-size: 11px; color: var(--muted); margin-top: 4px; }
+.inventory-saved { margin-left: auto; font-size: 10px; }
+.inventory-queries { display: grid; gap: 8px; margin-top: 20px; }
+.inventory-query { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; color: var(--muted); font-size: 11px; }
+.inventory-query svg { color: var(--brand); flex-shrink: 0; }
+.inventory-match { margin-left: auto; color: var(--brand); font-size: 10px; }
+.inventory-caption { color: var(--muted); text-align: center; font-size: 11px; line-height: 1.7; }
+.benchmark-heading { color: var(--ink); font-weight: 600; font-size: 18px; margin-top: 28px; }
+@media (prefers-reduced-motion: no-preference) {
+  .inventory-transfer span { animation: inventory-download 9s linear infinite; }
+  .inventory-transfer span:nth-child(2) { animation-delay: .25s; }
+  .inventory-transfer span:nth-child(3) { animation-delay: .5s; }
+  .inventory-store { animation: inventory-save 9s ease-in-out infinite; }
+  .inventory-query { animation: inventory-search 9s ease-in-out infinite; }
+  .inventory-query-1 { animation-delay: 1.6s; }
+  .inventory-query-2 { animation-delay: 3.2s; }
+}
+@keyframes inventory-download {
+  0% { transform: translateY(0); opacity: 0; }
+  3% { opacity: 1; }
+  17% { transform: translateY(34px); opacity: 1; }
+  20%, 100% { transform: translateY(34px); opacity: 0; }
+}
+@keyframes inventory-save {
+  0%, 16%, 32%, 100% { border-color: var(--line); }
+  22%, 28% { border-color: var(--brand); }
+}
+@keyframes inventory-search {
+  0%, 30%, 50%, 100% { transform: translateX(0); border-color: var(--line); background: transparent; }
+  35%, 45% { transform: translateX(4px); border-color: var(--brand); background: var(--panel); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .inventory-transfer span:first-child { opacity: 1; top: 17px; }
+}

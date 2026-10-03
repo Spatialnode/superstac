@@ -4,6 +4,7 @@ import { ArrowRight, ArrowUpRight, Braces, Layers, Terminal, GitMerge, Scan, Boo
 import { baseOptions } from '@/lib/layout.shared';
 import { FederationMap } from '@/components/federation-map';
 import { CodePreview } from '@/components/code-preview';
+import { InventoryDemo } from '@/components/inventory-demo';
 import { PoweredBySpatialnode } from '@/components/powered-by-spatialnode';
 import type { Metadata } from 'next';
 
@@ -101,7 +102,8 @@ export default function Home() {
             <Link href="/docs/python/geoparquet-notebook" className="text-link">Try the GeoParquet notebook <ArrowRight size={15} /></Link>
           </div>
           <div className="code-section-copy">
-            <h3>How fast is local search?</h3>
+            <InventoryDemo />
+            <h3 className="benchmark-heading">How fast is local search?</h3>
             <p>Our benchmark measures how skipping irrelevant data speeds up a selective search over 100,000 synthetic items. See the results and run it yourself.</p>
             <Link href="/docs/guides/benchmarks" className="text-link">Explore the benchmark <ArrowRight size={15} /></Link>
           </div>
