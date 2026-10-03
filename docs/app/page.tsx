@@ -97,7 +97,7 @@ export default function Home() {
         <section className={styles.foundations} aria-labelledby="foundations-title">
           <div>
             <h2 id="foundations-title">Built on STAC. Powered by Rust.</h2>
-            <p>Part of the open-source STAC ecosystem. SuperSTAC uses rustac’s <code>stac</code> types and <code>stac-io</code> for native catalog requests.</p>
+            <p>Built with open standards and open-source tools from the STAC community.</p>
           </div>
           <nav aria-label="Standards and open-source foundations">
             <a href="https://stacspec.org/">STAC <ArrowUpRight size={14} aria-hidden="true" /><span>The catalog standard</span></a>
