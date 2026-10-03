@@ -1,15 +1,6 @@
 {
   "title": "Documentation",
   "pages": [
-    "index",
-    "start",
-    "concepts",
-    "guides",
-    "wasm",
-    "python",
-    "rust",
-    "cli",
-    "reference",
-    "releases"
+    "v0.3"
   ]
 }

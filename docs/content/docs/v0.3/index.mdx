@@ -1,0 +1,42 @@
+---
+title: Introduction
+description: Search across STAC catalogs through one interface, with JavaScript, Python, Rust, or the command line.
+---
+
+import { Cards, Card } from 'fumadocs-ui/components/card';
+
+**Many catalogs. One search.**
+
+Search several STAC catalogs with one query. Add the catalogs you use, choose an area and date range, and get their results together.
+
+Try it in your browser, use Python in a notebook or script, add Rust to your application, or work from the command line. SuperSTAC searches catalogs in parallel and reports which ones failed, so you can check whether the results are complete.
+
+For the background and motivation, read [Introducing SuperSTAC: Many catalogs. One search.](https://www.spatialnode.net/articles/introducing-superstac-many-catalogs-one-search2a5e11)
+
+<Cards>
+  <Card title="Try it in your browser" description="Search two catalogs and explore scene records. No installation needed." href="/docs/v0.3/wasm/playground" />
+  <Card title="What’s new in v0.3" description="Save your study-area metadata and explore it repeatedly, with live catalog fallback." href="/docs/v0.3/releases" />
+  <Card title="Run your first search" description="A complete example against two catalogs." href="/docs/v0.3/start/quickstart" />
+  <Card title="Understand federation" description="From one query to multiple sources." href="/docs/v0.3/concepts/federation" />
+  <Card title="Use Python" description="Scripts, notebooks, and asyncio applications." href="/docs/v0.3/python/overview" />
+  <Card title="Try the notebook" description="Search, map, and export in Colab or Jupyter." href="/docs/v0.3/python/notebook" />
+  <Card title="Use Rust" description="Embed the engine in your application." href="/docs/v0.3/rust/overview" />
+</Cards>
+
+## What you can build
+
+Find imagery across catalogs, use consistent collection and band names, or check which datasets a catalog offers. If you often search the same area, [save its metadata to GeoParquet](/docs/v0.3/guides/geoparquet) and reuse it. Results contain STAC metadata and asset links; use your usual tools to download and process imagery.
+
+## Before you start
+
+Start with [installation](/docs/v0.3/start/installation), then [run your first search](/docs/v0.3/start/quickstart). SuperSTAC is **alpha software**: APIs may change, and some search features are [not yet supported](/docs/v0.3/reference/status).
+
+## Choose your interface
+
+| Interface | A good fit for |
+| --- | --- |
+| [Browser / WASM](/docs/v0.3/wasm/overview) | JavaScript and TypeScript apps that search live catalogs. |
+| [Python Client](/docs/v0.3/python/overview) | Notebooks, scripts, and synchronous pipelines. |
+| [Python AsyncClient](/docs/v0.3/python/async) | Applications that already use asyncio. |
+| [Rust engine](/docs/v0.3/rust/overview) | Native integrations on Tokio. |
+| [CLI](/docs/v0.3/cli/overview) | Terminal exploration and shell workflows. |

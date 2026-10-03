@@ -37,7 +37,7 @@ export function FederationMap() {
         <div className="catalog-node catalog-three"><Layers size={20} /><div><strong>Your catalog</strong><small>Compatible STAC API</small></div><span className="tiny-dot" /></div>
         <div className="map-result"><Check size={13} /><span>Combined STAC results</span></div>
       </div>
-      <button type="button" className="diagram-animation-toggle" onClick={() => setPaused(!paused)} aria-label={paused ? 'Play diagram animation' : 'Pause diagram animation'} title={paused ? 'Play animation' : 'Pause animation'}>
+      <button type="button" className="diagram-animation-toggle" onClick={() => setPaused(!paused)} aria-pressed={paused} aria-label={paused ? 'Play diagram animation' : 'Pause diagram animation'} title={paused ? 'Play animation' : 'Pause animation'}>
         {paused ? <Play size={13} /> : <Pause size={13} />}
       </button>
     </div>

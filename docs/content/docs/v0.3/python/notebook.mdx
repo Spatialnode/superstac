@@ -1,0 +1,34 @@
+---
+title: Try it in a notebook
+description: Search two catalogs, map scene footprints, and download the results in Colab or Jupyter.
+---
+
+This notebook searches Earth Search and Microsoft Planetary Computer for Sentinel-2 imagery, then maps the results. Use a standard Python CPU runtime; the public metadata searches need no GPU or API key.
+
+## Open the notebook
+
+<a href="/superstac/versions/v0.3/notebooks/superstac-python-quickstart.ipynb" download>Download the Python quickstart notebook</a>, then open [Google Colab](https://colab.research.google.com/) and choose **File → Upload notebook**. You can also open the downloaded file in Jupyter.
+
+
+[Open directly in Colab](https://colab.research.google.com/github/Spatialnode/superstac/blob/main/docs/public/versions/v0.3/notebooks/superstac-python-quickstart.ipynb) · [View on GitHub](https://github.com/Spatialnode/superstac/blob/main/docs/public/versions/v0.3/notebooks/superstac-python-quickstart.ipynb)
+
+## What you will do
+
+1. Install SuperSTAC, Pandas, and Folium in the notebook kernel.
+2. Connect to two catalogs and check which ones offer Sentinel-2.
+3. Search an area and date range through one Python client.
+4. Inspect item details, duplicate counts, and catalog failures.
+5. Display scene footprints and the search area on a map.
+6. Export full STAC items, metadata, query settings, and a map to a downloadable ZIP.
+
+Run the cells from top to bottom. The sample searches a fixed month around Luxembourg with at most five items per catalog. Change the bounding box, dates, or catalogs to explore another query. If you raise the item limit, update both the query limit and the configured per-catalog cap.
+
+## Understand the output
+
+The map shows scene footprints, not satellite pixels. Item asset links may require provider-specific signing or authentication before downloads. The notebook closes the client after searching. The results stay in memory so you can keep exploring them.
+
+Results depend on public catalog availability and the installed alpha version. An empty result is not necessarily a successful search: inspect the discovery table, `catalogs_queried`, and `failures`. Python returns each item as a dictionary. Search metadata describes the overall search, but does not say which catalog supplied each item.
+
+Internet access is required for installation, catalog requests, and map tiles. Colab runtime files are temporary, so download the exported ZIP before ending the session. If installation fails because no compatible wheel is available, follow the [source installation guide](/docs/v0.3/start/installation).
+
+Continue with the [Python API reference](/docs/v0.3/python/api), [search parameters](/docs/v0.3/reference/search), or [results and provenance](/docs/v0.3/reference/results).

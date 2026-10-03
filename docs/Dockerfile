@@ -3,10 +3,12 @@ FROM node:26-alpine AS build
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm install --global pnpm@9.8.0
-COPY package.json pnpm-lock.yaml source.config.ts ./
+COPY package.json pnpm-lock.yaml source.config.ts versions.json ./
 COPY scripts/check-node.mjs ./scripts/check-node.mjs
 RUN pnpm install --frozen-lockfile
 COPY . .
+# CI supplies the tested WASM artifact; fail clearly if a local build omitted it.
+RUN test -s public/wasm/superstac_wasm.js && test -s public/wasm/superstac_wasm_bg.wasm
 RUN pnpm check && pnpm build
 
 FROM node:26-alpine AS runner

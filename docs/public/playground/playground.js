@@ -1,131 +1,193 @@
-const $ = (id) => document.getElementById(id);
-const areas = {
-  alps: { name: 'French Alps', bbox: [6, 45, 7, 46] },
-  barcelona: { name: 'Barcelona coast', bbox: [1.9, 41.2, 2.4, 41.6] },
-  nairobi: { name: 'Nairobi', bbox: [36.6, -1.5, 37, -1.1] },
-};
-const catalogs = {
-  'earth-search': { name: 'Earth Search', url: 'https://earth-search.aws.element84.com/v1' },
-  microsoft: { name: 'Planetary Computer', url: 'https://planetarycomputer.microsoft.com/api/stac/v1' },
-};
-let wasm;
-let latest;
-let busy = false;
-function selection() {
-  const ids = [...document.querySelectorAll('input[name=catalog]:checked')].map(input => input.value);
-  const area = areas[$('area').value];
-  return { ids, area, from: $('from').value, to: $('to').value,
-    config: { catalogs: ids.map(id => ({ id, url: catalogs[id].url })),
-      settings: { per_catalog_timeout_seconds: 20, max_retry_attempts: 1 } },
-    query: { collections: ['sentinel-2-l2a'], bbox: area.bbox,
-      datetime: `${$('from').value}T00:00:00Z/${$('to').value}T23:59:59Z`, limit: Number($('limit').value) } };
+import { $, el, button, errorMessage } from './modules/dom.js';
+import { defaults, DEFAULT_SETTINGS, AREAS, configFor, queryFor, example } from './modules/model.js';
+import { catalogDirectory } from './modules/stac-index.js';
+import { catalogEditor } from './modules/catalogs.js';
+import { resultView } from './modules/results.js';
+import { activityMonitor } from './modules/activity.js';
+import { overviewMap } from './modules/map.js';
+
+let state = defaults(), busy = false, wasm;
+const activity = activityMonitor(() => catalogs.render());
+const overview = overviewMap(bbox => {
+  if (busy) return;
+  $('area').value = 'custom'; $('geometry').value = '';
+  ['west', 'south', 'east', 'north'].forEach((id, i) => { $(id).value = bbox[i]; });
+  tab('search'); updateCode();
+}, index => results.preview(index));
+const results = resultView(overview);
+const catalogs = catalogEditor(() => state, changed, () => busy, activity.badge);
+catalogDirectory(() => state.catalogs, catalogs.addFromIndex, () => busy);
+function values() {
+  return { ...Object.fromEntries(['collections', 'area', 'from', 'to', 'limit', 'ids', 'sortby', 'geometry'].map(id => [id, $(id).value])), bbox: ['west', 'south', 'east', 'north'].map(id => $(id).value) };
 }
 function updateCode() {
-  const { config, query } = selection();
-  $('code').textContent = `import init, { SuperSTAC } from './pkg/superstac_wasm.js';\n\nawait init();\nconst client = new SuperSTAC(${JSON.stringify(config, null, 2)});\ntry {\n  const result = await client.search(${JSON.stringify(query, null, 2).replaceAll('\n', '\n  ')});\n  console.log(result.items, result.metadata.failures);\n} finally {\n  client.free();\n}`;
+  try { const query = queryFor(values()); overview.query(query); $('code').textContent = example(configFor(state), query); $('copy').disabled = false; }
+  catch (error) { $('code').textContent = errorMessage(error); $('copy').disabled = true; }
   $('copy-status').textContent = '';
+  $('bbox-fields').hidden = $('area').value !== 'custom';
+  const selected = state.catalogs.filter(c => c.enabled);
+  $('selected-catalogs').textContent = selected.length ? `Searching ${selected.map(c => c.name).join(' and ')}.` : 'No catalogs selected. Choose one in Catalogs.';
 }
-function el(tag, text, className) {
-  const node = document.createElement(tag);
-  if (text !== undefined) node.textContent = text;
-  if (className) node.className = className;
-  return node;
+function changed() { catalogs.render(); updateCode(); $('discovery').replaceChildren(); activity.log('Workspace updated', `${state.catalogs.length} catalogs · ${state.providers.length} providers`, { ms: 0 }); }
+function tab(name, focus = false) {
+  controlsPanel(true);
+  $('search-actions').hidden = name !== 'search';
+  $('settings-actions').hidden = name !== 'settings';
+  document.querySelectorAll('[data-tab]').forEach(b => {
+    const active = b.dataset.tab === name; b.setAttribute('aria-selected', String(active)); b.tabIndex = active ? 0 : -1;
+    $(`panel-${b.dataset.tab}`).hidden = !active; if (active && focus) b.focus();
+  });
 }
-function safeUrl(value) {
-  try { const url = new URL(value); return ['https:', 'http:'].includes(url.protocol) ? url.href : null; }
-  catch { return null; }
+$('manage-catalogs').addEventListener('click', () => tab('catalogs', true));
+function controlsPanel(open, focus = false) {
+  $('workspace-controls').hidden = !open;
+  document.body.dataset.controls = open ? 'open' : 'closed';
+  $('toggle-controls').setAttribute('aria-expanded', String(open));
+  if (open && matchMedia('(max-width: 900px)').matches) results.collapse();
+  if (focus) (open ? document.querySelector('[data-tab][aria-selected="true"]') : $('toggle-controls')).focus({ preventScroll: true });
 }
-function render(response, selected) {
-  latest = response;
-  const { metadata, items } = response;
-  $('empty').hidden = true;
-  $('result-content').hidden = false;
-  $('result-title').textContent = `${items.length} ${items.length === 1 ? 'scene' : 'scenes'} found`;
-  $('result-query').textContent = `${selected.area.name} · ${selected.from} to ${selected.to}`;
-  $('download').disabled = items.length === 0;
-  $('summary').replaceChildren(
-    el('span', `${metadata.catalogs_succeeded} of ${metadata.catalogs_queried} catalogs responded`),
-    el('span', `${metadata.duplicates_removed} duplicate ${metadata.duplicates_removed === 1 ? 'record' : 'records'} combined`),
-    el('span', `Up to ${selected.query.limit} scenes per catalog`));
-  $('catalog-status').replaceChildren();
-  for (const id of selected.ids) {
-    const failure = metadata.failures.find(entry => entry.catalog_id === id);
-    const count = items.filter(entry => entry.seen_in.includes(id)).length;
-    const note = el('div', failure ? `${catalogs[id].name} couldn’t be reached. You can try again or search the other catalog.`
-      : `${catalogs[id].name} returned ${count} ${count === 1 ? 'scene' : 'scenes'}.`, `catalog-note${failure ? ' failure' : ''}`);
-    if (failure) {
-      const details = el('details'); details.append(el('summary', 'Error details'), el('pre', failure.reason)); note.append(details);
-    }
-    $('catalog-status').append(note);
+$('toggle-controls').addEventListener('click', () => {
+  if ($('workspace-controls').hidden) tab('search', true);
+  else controlsPanel(false, true);
+});
+$('close-controls').addEventListener('click', () => controlsPanel(false, true));
+$('workspace-controls').addEventListener('keydown', event => {
+  if (event.key === 'Escape') { event.stopPropagation(); controlsPanel(false, true); }
+});
+document.addEventListener('playground:preview', () => controlsPanel(false));
+document.addEventListener('playground:results-open', () => {
+  if (matchMedia('(max-width: 900px)').matches) controlsPanel(false);
+});
+const tabs = [...document.querySelectorAll('[data-tab]')];
+tabs.forEach((b, i) => {
+  b.addEventListener('click', () => tab(b.dataset.tab));
+  b.addEventListener('keydown', event => {
+    const next = { ArrowRight: (i + 1) % tabs.length, ArrowLeft: (i + tabs.length - 1) % tabs.length, Home: 0, End: tabs.length - 1 }[event.key];
+    if (next !== undefined) { event.preventDefault(); tab(tabs[next].dataset.tab, true); }
+  });
+});
+function lock(value) {
+  busy = value;
+  for (const id of ['search-button', 'apply-settings', 'reset-settings']) $(id).disabled = value;
+  $('query-controls').disabled = value; $('settings-controls').disabled = value; $('reset').disabled = value;
+  $('try-aliases').disabled = value; $('results').setAttribute('aria-busy', String(value)); catalogs.render();
+}
+async function clientFor(config) {
+  if (!wasm) {
+    const module = await import('/superstac/wasm/superstac_wasm.js'); await module.default(); wasm = module;
   }
-  $('scenes').replaceChildren();
-  if (!items.length) {
-    $('scenes').append(el('p', metadata.catalogs_succeeded ? 'No scenes matched this search. Try a wider date range or another area.'
-      : 'Neither catalog returned results. Check your connection, then try again.', 'hint'));
-  }
-  for (const entry of items) {
-    const { item } = entry;
-    const card = el('article', undefined, 'scene');
-    const captured = item.properties.datetime ?? item.properties.start_datetime;
-    const date = new Date(captured);
-    const title = captured && Number.isFinite(date.getTime()) ? new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeZone: 'UTC' }).format(date) : 'Capture date unavailable';
-    card.append(el('h3', title), el('div', item.id, 'scene-id'));
-    const cloud = item.properties['eo:cloud_cover'];
-    card.append(el('p', `${typeof cloud === 'number' && Number.isFinite(cloud) ? `${Math.round(cloud)}% cloud cover` : 'Cloud cover not reported'} · ${Object.keys(item.assets ?? {}).length} assets`));
-    const sources = el('div', undefined, 'sources');
-    for (const source of entry.seen_in) sources.append(el('span', catalogs[source]?.name ?? source, 'source'));
-    card.append(sources);
-    const href = safeUrl(item.links?.find(link => link.rel === 'self')?.href);
-    if (href) { const link = el('a', 'View catalog record ↗'); link.href = href; link.target = '_blank'; link.rel = 'noopener noreferrer'; const p = el('p'); p.append(link); card.append(p); }
-    $('scenes').append(card);
-  }
-  $('response').textContent = JSON.stringify(response, null, 2);
+  return new wasm.SuperSTAC(config);
 }
-$('search-form').addEventListener('change', updateCode);
+$('search-form').addEventListener('input', updateCode);
 $('search-form').addEventListener('submit', async event => {
-  event.preventDefault();
-  if (busy) return;
-  const selected = selection();
-  const validation = !selected.ids.length ? 'Select at least one catalog.' : selected.from > selected.to ? 'The end date must be on or after the start date.' : '';
-  $('validation').textContent = validation; $('validation').hidden = !validation;
-  if (validation) return;
-  busy = true;
-  $('controls').disabled = true; $('results').setAttribute('aria-busy', 'true');
-  $('search-button').textContent = 'Searching…';
-  $('status').textContent = `Searching ${selected.ids.map(id => catalogs[id].name).join(' and ')}… This can take up to 20 seconds.`;
+  event.preventDefault(); if (busy) return;
+  let config, query;
+  try { config = configFor(state); query = queryFor(values()); $('validation').hidden = true; }
+  catch (error) { $('validation').textContent = errorMessage(error); $('validation').hidden = false; return; }
+  const snapshot = { unify: state.settings.unify_response, catalogs: structuredClone(state.catalogs), query, areaName: query.intersects ? 'Custom geometry' : AREAS[$('area').value]?.name ?? ($('area').value === 'custom' ? 'Custom area' : 'Anywhere') };
+  activity.begin('Search', snapshot.catalogs.filter(c => c.enabled));
+  controlsPanel(false); $('toggle-controls').focus({ preventScroll: true });
+  lock(true); $('search-button').textContent = 'Searching…'; $('status').textContent = 'Searching your selected catalogs…';
   let client;
   try {
-    if (!wasm) {
-      // Keep the generated module out of the docs bundle; load it on first search.
-      const module = await import('../wasm/superstac_wasm.js');
-      await module.default(); wasm = module;
-    }
-    client = new wasm.SuperSTAC(selected.config);
-    const response = await client.search(selected.query);
-    render(response, selected);
-    $('status').textContent = response.metadata.catalogs_failed ? 'Search finished. Some catalogs could not return results; see the details below.' : 'Search finished.';
-  } catch {
-    $('status').textContent = 'The search could not start. Check your connection and try again. If this keeps happening, reload the page.';
-  } finally {
-    client?.free(); busy = false; $('controls').disabled = false;
-    $('results').setAttribute('aria-busy', 'false'); $('search-button').textContent = 'Search scenes →';
-  }
+    client = await clientFor(config); const response = await client.search(query); results.render(response, snapshot); activity.outcome(response, snapshot.catalogs.filter(c => c.enabled));
+    activity.finish(`${response.items.length} scenes · ${response.metadata.catalogs_failed} catalogs failed`, response.metadata.catalogs_failed > 0);
+    $('status').textContent = response.metadata.catalogs_succeeded === 0 ? 'No catalogs could complete this search. See the details below.' : response.metadata.catalogs_failed ? 'Search finished. Some catalogs could not return results; see the details below.' : 'Search finished.';
+  } catch (error) { activity.finish('Search could not complete. See the status message.', true); $('status').textContent = `The search could not finish. ${errorMessage(error)}`; }
+  finally { client?.free(); lock(false); $('search-button').textContent = 'Search scenes →'; }
 });
-$('download').addEventListener('click', () => {
-  if (!latest?.items.length) return;
-  const blob = new Blob([JSON.stringify({ type: 'FeatureCollection', features: latest.items.map(entry => entry.item) }, null, 2)], { type: 'application/geo+json' });
-  const url = URL.createObjectURL(blob); const link = el('a'); link.href = url; link.download = 'superstac-scenes.geojson';
-  document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+$('discover').addEventListener('click', async () => {
+  if (busy) return; let client, config;
+  try { config = configFor(state); }
+  catch (error) { $('discovery').textContent = errorMessage(error); return; }
+  activity.begin('Collection discovery', state.catalogs.filter(c => c.enabled));
+  lock(true); $('discovery').textContent = 'Finding collections…';
+  try {
+    client = await clientFor(config); const response = await client.listCollections();
+    $('discovery').replaceChildren(); const suggestions = new Set();
+    for (const result of response) {
+      const group = el('details', undefined, 'collection-group'); group.open = response.length === 1;
+      group.append(el('summary', `${state.catalogs.find(c => c.id === result.catalog_id)?.name ?? result.catalog_id} · ${result.collections.length} collections`));
+      if (result.error) group.append(el('p', result.error, 'error'));
+      const list = el('div', undefined, 'collection-list');
+      for (const collection of result.collections) {
+        suggestions.add(collection.canonical_id);
+        const choose = button(collection.collection.title ?? collection.canonical_id, () => {
+          $('collections').value = collection.canonical_id; tab('search', true); updateCode();
+        }, 'collection-button');
+        choose.append(el('span', collection.canonical_id, 'hint')); list.append(choose);
+      }
+      group.append(list); $('discovery').append(group);
+    }
+    activity.finish(`${response.reduce((sum, r) => sum + r.collections.length, 0)} collections found`, response.some(r => r.error));
+    $('collection-suggestions').replaceChildren(...[...suggestions].map(id => new Option(id, id)));
+  } catch (error) { activity.finish('Collection discovery failed', true); $('discovery').textContent = `Collections could not load. ${errorMessage(error)}`; }
+  finally { client?.free(); lock(false); }
+});
+$('try-aliases').addEventListener('click', () => {
+  if (busy) return;
+  state.catalogs.forEach(c => { c.enabled = false; });
+  for (const sample of defaults().catalogs) {
+    let catalog = state.catalogs.find(c => c.url === sample.url);
+    if (!catalog) {
+      while (state.catalogs.some(c => c.id === sample.id)) sample.id += '-example';
+      catalog = sample; state.catalogs.push(catalog);
+    }
+    catalog.enabled = true; catalog.collection_aliases.optical = 'sentinel-2-l2a';
+    catalog.asset_aliases.optical = { ...catalog.asset_aliases.optical, rgb: 'visual' };
+  }
+  state.settings.unify_response = true; showSettings(); $('collections').value = 'optical';
+  changed(); tab('search', true);
+  $('status').textContent = 'Alias example ready. Search for optical; returned images will use the name rgb.';
+});
+$('check-health').addEventListener('click', async () => {
+  if (busy) return;
+  const selected = state.catalogs.filter(c => c.enabled);
+  if (!selected.length) { $('discovery').textContent = 'Select a catalog to check its connection.'; return; }
+  lock(true); activity.begin('Connection check', selected); $('discovery').textContent = 'Checking selected catalogs…';
+  try { await activity.check(selected); $('discovery').textContent = 'Connection checks finished. Each catalog shows its last response.'; }
+  finally { activity.finish('See each catalog’s last response'); lock(false); }
+});
+function activityPanel(open) {
+  $('activity-panel').hidden = !open; $('open-activity').setAttribute('aria-expanded', String(open));
+  if (open) $('close-activity').focus(); else $('open-activity').focus();
+}
+$('open-activity').addEventListener('click', () => activityPanel($('activity-panel').hidden));
+$('close-activity').addEventListener('click', () => activityPanel(false));
+$('activity-panel').addEventListener('keydown', event => { if (event.key === 'Escape') activityPanel(false); });
+function showSettings() {
+  for (const [key, value] of Object.entries(state.settings)) { if (typeof value === 'boolean') $(key).checked = value; else $(key).value = value; }
+}
+$('settings-form').addEventListener('submit', event => {
+  event.preventDefault(); if (busy) return;
+  state.settings = Object.fromEntries(Object.entries(DEFAULT_SETTINGS).map(([key, value]) => [key, typeof value === 'boolean' ? $(key).checked : Number($(key).value)]));
+  updateCode(); activity.log('Settings applied', 'The next search will use these settings.', { ms: 0 }); $('settings-status').textContent = 'Settings applied to your next search.';
+});
+$('reset-settings').addEventListener('click', () => {
+  if (busy) return; state.settings = { ...DEFAULT_SETTINGS }; showSettings(); updateCode(); $('settings-status').textContent = 'Default settings restored.';
+});
+$('reset').addEventListener('click', () => {
+  if (busy) return; state = defaults(); $('search-form').reset(); showSettings(); changed(); results.clear();
+  $('validation').hidden = true; $('settings-status').textContent = ''; $('status').textContent = 'Defaults restored. Ready to search.'; tab('search');
+});
+$('open-code').addEventListener('click', () => {
+  updateCode(); $('code-dialog').showModal(); $('copy').focus();
 });
 $('copy').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText($('code').textContent); $('copy-status').textContent = 'Code copied.'; }
-  catch { $('copy-status').textContent = 'Select the code below to copy it.'; }
-});
-updateCode();
-// The docs embed follows the site's theme and grows with the result list.
-window.addEventListener('message', event => {
-  if (event.origin === location.origin && event.source === parent && event.data?.type === 'superstac-theme') {
-    document.documentElement.dataset.theme = event.data.dark ? 'dark' : 'light';
+  catch {
+    const range = document.createRange(); range.selectNodeContents($('code'));
+    const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
+    $('code').focus(); $('copy-status').textContent = 'Code selected. Press Ctrl+C or ⌘C to copy.';
   }
 });
-if (parent !== window) new ResizeObserver(() => parent.postMessage({ type: 'superstac-height', height: document.body.scrollHeight }, location.origin)).observe(document.body);
+let theme;
+try { theme = localStorage.getItem('superstac-playground-theme'); } catch { /* Storage may be unavailable. */ }
+document.documentElement.dataset.theme = theme ?? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+$('theme').addEventListener('click', () => {
+  const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = next;
+  overview.theme();
+  try { localStorage.setItem('superstac-playground-theme', next); } catch { /* The theme still applies to this page. */ }
+});
+changed();
+overview.start();

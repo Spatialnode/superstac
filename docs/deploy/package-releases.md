@@ -28,7 +28,7 @@ platforms can build from the source distribution.
    manual runs, producing artifacts without publishing.
 3. Tag the checked commit `v<version>` and publish its GitHub release. The workflow
    checks the tag against the workspace version.
-4. Check `Publish packages` and the independently triggered `Deploy docs` workflow.
+4. Check `Publish packages`. For docs changes, check the `Docs image` workflow and pull the tested image in Coolify.
    Confirm versions and documentation links on PyPI and crates.io before announcing.
 
 Crates publish in dependency order: core, config, search, engine, cli. The Python
@@ -37,7 +37,7 @@ cannot be atomic across registries. Rerun after fixing credentials or registry
 availability; existing crate versions and Python files are skipped. Source
 changes after publication require a new version and tag.
 
-Docs may deploy before package publication. The package remains alpha software
+Pushes to `main` build and publish the tested docs image in CI, independently of package publication. Coolify pulls that image; see the [docs hosting instructions](../README.md#publish). The package remains alpha software
 even when the numeric version has no `a` suffix.
 
 ## Local verification

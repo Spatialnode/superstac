@@ -1,51 +1,121 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Search satellite scenes · SuperSTAC</title>
-<link rel="stylesheet" href="./playground.css">
-<script type="module" src="./playground.js"></script>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Search STAC catalogs, adjust settings, and preview satellite scenes with SuperSTAC.">
+<title>SuperSTAC Playground</title>
+<link rel="canonical" href="https://spatialnode.com/superstac/playground">
+<link rel="stylesheet" href="/superstac/playground/playground.css">
+<script type="module" src="/superstac/playground/playground.js"></script>
 </head>
 <body>
+<header class="topbar"><a class="brand" href="/superstac"><img class="logo-light" src="/superstac/brand/superstac-logo.svg" alt="SuperSTAC"><img class="logo-dark" src="/superstac/brand/superstac-logo-dark.svg" alt="SuperSTAC"><span>Playground</span></a><nav aria-label="Main"><a href="/superstac/docs/wasm/overview">Documentation ↗</a><button id="theme" class="quiet" type="button" aria-label="Switch color theme">◐ Theme</button></nav></header>
 <main>
-  <header>
-    <a class="brand" href="/superstac/docs/wasm/overview" target="_top">SuperSTAC <span>/ playground</span></a>
-    <h1>Find scenes across catalogs.</h1>
-    <p>Choose a place and a date range. SuperSTAC searches the catalogs you select and brings their results together.</p>
-  </header>
-  <form id="search-form">
-    <fieldset id="controls">
-      <legend class="sr-only">Search options</legend>
-      <div class="form-grid">
-        <label>Area<select id="area"><option value="alps">French Alps</option><option value="barcelona">Barcelona coast</option><option value="nairobi">Nairobi</option></select></label>
-        <label>From<input id="from" type="date" value="2024-06-01" required></label>
-        <label>To<input id="to" type="date" value="2024-06-30" required></label>
-        <label>Scenes per catalog<select id="limit"><option value="5">5 scenes</option><option value="10">10 scenes</option><option value="20">20 scenes</option></select></label>
+  <div class="intro"><div class="sr-only"><h1>Explore satellite imagery</h1><p>One search across your catalogs.</p></div><div class="toolbar"><button id="toggle-controls" class="primary" type="button" aria-expanded="false" aria-controls="workspace-controls">Find imagery</button></div></div>
+  <div class="workspace">
+    <aside class="controls-overlay" id="workspace-controls" aria-label="Search, catalogs and settings" hidden>
+      <div class="controls-heading"><strong>Find imagery</strong><div class="toolbar"><button id="open-code" class="secondary" type="button" aria-haspopup="dialog">View code</button><button id="close-controls" class="quiet" type="button" aria-label="Close search panel">×</button></div></div>
+      <div class="tabs" role="tablist" aria-label="Workspace controls">
+        <button role="tab" id="tab-search" aria-controls="panel-search" aria-selected="true" data-tab="search">Search</button>
+        <button role="tab" id="tab-catalogs" aria-controls="panel-catalogs" aria-selected="false" tabindex="-1" data-tab="catalogs">Catalogs</button>
+        <button role="tab" id="tab-settings" aria-controls="panel-settings" aria-selected="false" tabindex="-1" data-tab="settings">Settings</button>
       </div>
-      <p class="hint">Searching Sentinel-2 surface reflectance (L2A). Dates refer to when the satellite captured the scene.</p>
-      <div class="catalog-options" role="group" aria-label="Catalogs to search">
-        <label><input type="checkbox" name="catalog" value="earth-search" checked> Earth Search</label>
-        <label><input type="checkbox" name="catalog" value="microsoft" checked> Planetary Computer</label>
+      <div class="controls-body">
+      <section role="tabpanel" id="panel-search" aria-labelledby="tab-search">
+        <div class="sources-heading"><span>Selected catalogs</span><button id="manage-catalogs" class="quiet" type="button">Change</button></div><div id="active-catalogs"></div>
+        <form id="search-form"><fieldset id="query-controls"><legend class="sr-only">Search filters</legend>
+          <label>Collections<input id="collections" value="sentinel-2-l2a" list="collection-suggestions" placeholder="All collections"><datalist id="collection-suggestions"><option value="sentinel-2-l2a"><option value="landsat-c2-l2"></datalist></label><p class="hint">Separate collection IDs with commas. Leave blank to search all.</p>
+          <label>Area<select id="area"><option value="alps">French Alps</option><option value="barcelona">Barcelona coast</option><option value="nairobi">Nairobi</option><option value="custom">Custom bounding box</option><option value="anywhere">Anywhere</option></select></label>
+          <div class="area-actions"><button id="use-map-area" class="secondary" type="button" disabled>Use visible map area</button><button id="fit-map" class="quiet" type="button" disabled>Show selected area</button></div><p class="hint">Choose an area and dates, then search below.</p>
+          <div id="bbox-fields" class="two-col" hidden><label>West<input id="west" type="number" step="any" value="6" min="-180" max="180"></label><label>South<input id="south" type="number" step="any" value="45" min="-90" max="90"></label><label>East<input id="east" type="number" step="any" value="7" min="-180" max="180"></label><label>North<input id="north" type="number" step="any" value="46" min="-90" max="90"></label></div>
+          <div class="two-col"><label>From<input id="from" type="date" value="2024-06-01"></label><label>To<input id="to" type="date" value="2024-06-30"></label></div>
+          <label>Scenes per catalog<input id="limit" type="number" value="5" min="1" max="500" required></label>
+          <details><summary>More filters</summary><label>Scene IDs<textarea id="ids" rows="2" placeholder="Optional; separate IDs with commas"></textarea></label><label>Sort by<input id="sortby" placeholder="e.g. -datetime"><span class="hint">A minus sign means descending. Sorting applies within each catalog.</span></label><label>Intersecting geometry<textarea id="geometry" rows="4" placeholder='{"type":"Polygon","coordinates":[…]}'></textarea><span class="hint">Optional GeoJSON geometry. When set, it replaces the area above.</span></label></details>
+
+        </fieldset></form>
+      </section>
+      <section role="tabpanel" id="panel-catalogs" aria-labelledby="tab-catalogs" hidden>
+        <h2>Catalogs & providers</h2><p class="hint">Turn catalogs on or off for the next search. Providers help keep your catalogs organized.</p>
+        <div id="catalog-list"></div>
+        <div class="toolbar"><button id="browse-index" class="primary" type="button">Browse STAC Index</button><button id="add-catalog" class="secondary" type="button">Add by URL</button><button id="discover" class="secondary" type="button">Find collections</button></div>
+        <details id="connection-tools"><summary>Connection checks</summary><p class="hint">Check whether your selected catalogs respond.</p><button id="check-health" class="secondary" type="button">Check connections</button></details>
+        <details class="alias-demo"><summary>Try aliases with a real search</summary><p>Call the collection <code>optical</code> and its image <code>rgb</code>. SuperSTAC sends <code>sentinel-2-l2a</code> to the catalogs and returns the <code>visual</code> asset as <code>rgb</code>.</p><button id="try-aliases" type="button" class="secondary">Use the alias example</button><p class="hint">Selects Earth Search and Planetary Computer and turns on name normalization. Your other catalogs are kept.</p></details>
+        <div id="discovery" aria-live="polite"></div>
+        <details id="provider-tools"><summary>Organize providers</summary><div id="provider-list"></div><button id="add-provider" class="secondary" type="button">Add provider</button>
+        <p class="hint">Changes stay in this tab. Removing a provider keeps its catalogs, listed as unassigned.</p></details>
+      </section>
+      <section role="tabpanel" id="panel-settings" aria-labelledby="tab-settings" hidden>
+        <button id="reset" class="quiet" type="button">Reset workspace</button>
+        <h2>Search settings</h2><p class="hint">Applied to your next search. Defaults work for most public catalogs.</p>
+        <form id="settings-form"><fieldset id="settings-controls"><legend class="sr-only">Federation settings</legend>
+          <label class="check"><input id="deduplicate_items" type="checkbox" checked> Combine matching scene IDs</label>
+          <label class="check"><input id="unify_response" type="checkbox" checked> Normalize collection and asset names</label>
+          <label>Catalogs at once<input id="max_concurrent_catalogs" type="number" min="1" max="64" value="8" required></label>
+          <label>Timeout per attempt (seconds)<input id="per_catalog_timeout_seconds" type="number" min="1" max="3600" value="30" required></label>
+          <label>Attempts per catalog<input id="max_retry_attempts" type="number" min="1" max="255" value="2" required><span class="hint">Includes the first attempt. Set to 1 to skip retries.</span></label>
+          <label>Maximum scenes per catalog<input id="max_items_per_catalog" type="number" min="1" max="10000" value="1000" required></label>
+
+        </fieldset></form>
+      </section>
       </div>
-      <div class="form-bottom"><span>Matching scene IDs are combined automatically.</span><button type="submit" id="search-button">Search scenes <span aria-hidden="true">→</span></button></div>
-    </fieldset>
-    <p id="validation" class="error" role="alert" hidden></p>
-  </form>
-  <div id="status" role="status" aria-live="polite">Ready when you are. Searches run in your browser.</div>
-  <section id="results" aria-label="Search results" aria-busy="false">
-    <div id="empty" class="empty"><span class="empty-icon" aria-hidden="true">⌕</span><h2>A few scenes to start with.</h2><p>Try the French Alps in June. You’ll see capture dates, cloud cover, and where each scene was found.</p></div>
-    <div id="result-content" hidden>
-      <div class="results-heading"><div><h2 id="result-title"></h2><p id="result-query" class="hint"></p></div><button id="download" class="secondary" type="button" disabled>Download GeoJSON</button></div>
-      <div id="summary" class="summary"></div>
-      <div id="catalog-status"></div>
-      <div id="scenes" class="scenes"></div>
-      <details><summary>Full search response</summary><pre id="response"></pre></details>
-    </div>
-  </section>
-  <details id="code-details"><summary>Use this search in JavaScript</summary><p class="hint">After building the <a href="/superstac/docs/wasm/overview" target="_top">browser package</a>, use this code in your app.</p><button id="copy" class="secondary" type="button">Copy code</button><pre id="code"></pre><p id="copy-status" role="status" class="hint"></p></details>
-  <footer>These are scene records, not downloaded images. Results come directly from the selected catalogs; availability and browser access can vary.</footer>
-  <noscript>This playground needs JavaScript. You can also search using the <a href="/superstac/docs/start/quickstart" target="_top">Python client or command line</a>.</noscript>
+      <div id="search-actions" class="controls-actions">
+        <p id="selected-catalogs" class="hint"></p><p id="validation" class="error" role="alert" hidden></p>
+        <button type="submit" form="search-form" id="search-button" class="primary full">Search scenes →</button>
+      </div>
+      <div id="settings-actions" class="controls-actions" hidden>
+        <p id="settings-status" role="status" class="hint"></p>
+        <button id="apply-settings" type="submit" form="settings-form" class="primary">Apply settings</button><button id="reset-settings" class="quiet" type="button">Use defaults</button>
+      </div>
+    </aside>
+    <section id="results" class="results" aria-label="Search results" aria-busy="false">
+      <div class="statusbar"><div id="status" role="status" aria-live="polite">Start with Find imagery to choose an area and dates.</div><div class="toolbar"><span id="operation-time" class="hint"></span><button id="open-activity" class="quiet" type="button" aria-expanded="false" aria-controls="activity-panel">Activity <span id="activity-count">0</span></button></div></div>
+      <div id="viewer" class="viewer">
+        <div class="viewer-toolbar"><div><h2 id="viewer-title">Search area</h2><p id="viewer-caption" class="hint">Move the map to explore. Search to see scene footprints and imagery.</p></div><button id="close-map" class="quiet" type="button" hidden>Close preview</button></div>
+        <div id="map-placeholder" class="map-placeholder"><div id="overview-map" aria-label="Map of search area and scene footprints"></div><div id="map-fallback"><h3>Your search area</h3><p id="map-message">Loading map… You can search while it loads.</p><button id="retry-map" class="secondary" type="button" hidden>Retry map</button></div><div class="map-tools"><span id="map-legend">Blue outline · search area</span></div></div>
+        <div id="preview-controls" hidden><label for="preview-asset">Preview asset</label><select id="preview-asset"></select><p id="preview-status" role="status" class="hint"></p></div>
+        <div id="viewer-links" class="viewer-links" hidden></div>
+      </div>
+      <section id="activity-panel" class="activity-panel" aria-labelledby="activity-title" hidden><div class="activity-toolbar"><div><h2 id="activity-title">Activity</h2><p class="hint">See which catalogs responded, how long they took, and what needs attention.</p></div><button id="close-activity" class="quiet" type="button" aria-label="Close activity">×</button></div><div class="toolbar"><label class="sr-only" for="activity-filter">Filter activity</label><select id="activity-filter"><option value="all">All activity</option><option value="errors">Errors only</option></select><button id="copy-activity" class="secondary" type="button">Copy log</button><button id="clear-activity" class="quiet" type="button">Clear</button></div><p id="activity-empty" class="hint">Search, discover collections, or check connections to see requests here.</p><ol id="activity-list"></ol><p id="activity-note" role="status" class="hint"></p></section>
+      <div id="empty" class="empty"><h2>Ready to search</h2><p>Start with Sentinel-2 over the French Alps, or choose another collection and area.</p></div>
+      <div id="result-content" class="result-overlay" hidden>
+        <div class="result-overlay-bar"><span>Scenes</span><button id="toggle-results" class="quiet" type="button" aria-expanded="true" aria-controls="result-body">Hide results</button></div>
+        <div id="result-body">
+        <div class="results-heading"><div><h2 id="result-title"></h2><p id="result-query" class="hint"></p></div><span id="result-version" class="hint"></span></div>
+        <div id="summary" class="summary"></div><div id="catalog-status"></div><div id="scenes" class="scenes"></div>
+        <nav id="pagination" class="pagination" aria-label="Result pages" hidden><button id="previous" class="secondary" type="button">Previous</button><span id="page-label"></span><button id="next" class="secondary" type="button">Next</button></nav>
+        <details><summary>Full search response</summary><pre id="response"></pre></details>
+        </div>
+      </div>
+    </section>
+  </div>
+  <footer class="sr-only">SuperSTAC searches scene metadata. The map uses <a href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer">OpenFreeMap</a>; available assets and access requirements depend on the catalog. <a href="/superstac/docs/wasm/overview">Read the browser guide.</a></footer>
 </main>
+<dialog id="code-dialog" aria-labelledby="code-title">
+  <div class="code-heading"><div><h2 id="code-title">Use this search in your app</h2><p class="hint">JavaScript · your catalogs, filters, and applied settings</p></div><button class="quiet" type="button" data-close="code-dialog" aria-label="Close code example">×</button></div>
+  <pre id="code" tabindex="0" aria-label="JavaScript search example"></pre>
+  <div class="code-actions"><p id="copy-status" role="status" class="hint">Ready to copy.</p><button id="copy" class="primary" type="button">Copy code</button></div>
+</dialog>
+<dialog id="index-dialog" aria-labelledby="index-title">
+  <div class="dialog-heading"><h2 id="index-title">Find a catalog</h2><button type="button" class="quiet" data-close="index-dialog" aria-label="Close catalog directory">×</button></div>
+  <p class="hint">Public STAC APIs listed by <a href="https://stacindex.org" target="_blank" rel="noopener noreferrer">STAC Index</a>. Static catalogs and catalogs requiring sign-in are excluded. Browser access varies by catalog.</p>
+  <label>Search catalogs<input id="index-search" type="search" placeholder="Name, place, or topic" autocomplete="off"></label>
+  <p id="index-status" class="hint" role="status"></p>
+  <button id="index-retry" type="button" class="secondary" hidden>Try again</button>
+  <div id="index-list" class="index-list"></div>
+  <button id="index-more" type="button" class="secondary" hidden>Show more</button>
+</dialog>
+<dialog id="catalog-dialog"><form id="catalog-form"><div class="dialog-heading"><h2 id="catalog-dialog-title">Add catalog</h2><button type="button" class="quiet" data-close="catalog-dialog" aria-label="Close catalog editor">×</button></div>
+  <label>Name<input id="catalog-name" required maxlength="100" placeholder="My catalog"></label><label>Catalog ID<input id="catalog-id" required pattern="[A-Za-z0-9_-]+" placeholder="my-catalog"></label><label>STAC API URL<input id="catalog-url" type="url" required placeholder="https://example.com/stac/v1"></label><label>Provider<select id="catalog-provider"></select></label>
+  <details id="alias-editor"><summary>Collection & asset aliases</summary><p class="hint">Use familiar names in your app. SuperSTAC translates them for each catalog.</p>
+    <div class="alias-section-heading"><h3>Collections</h3><button id="add-collection-alias" type="button" class="secondary">Add name pair</button></div><div id="collection-alias-rows"></div>
+    <div class="alias-section-heading"><h3>Assets</h3><button id="add-asset-alias" type="button" class="secondary">Add asset name</button></div><div id="asset-alias-rows"></div>
+    <button id="fill-alias-example" type="button" class="quiet">Fill a Sentinel-2 example</button><p class="hint">Example for catalogs with a sentinel-2-l2a collection and a visual asset. Save the catalog to apply your changes.</p>
+    <div id="alias-preview" class="alias-preview" aria-live="polite"></div>
+    <details><summary>Edit as JSON</summary><label>Collection aliases<textarea id="collection-aliases" rows="3"></textarea></label><label>Asset aliases<textarea id="asset-aliases" rows="3"></textarea></label></details>
+  </details>
+  <p id="catalog-error" class="error" role="alert" hidden></p><div class="dialog-actions"><button type="button" class="secondary" data-close="catalog-dialog">Cancel</button><button type="submit" class="primary">Save catalog</button></div>
+</form></dialog>
+<dialog id="provider-dialog"><form id="provider-form"><div class="dialog-heading"><h2 id="provider-dialog-title">Add provider</h2><button type="button" class="quiet" data-close="provider-dialog" aria-label="Close provider editor">×</button></div><label>Name<input id="provider-name" required maxlength="100" placeholder="My organization"></label><label>Icon URL <span class="hint">(optional)</span><input id="provider-icon" type="url" placeholder="https://example.com/logo.png"><span class="hint">Use your provider’s logo. Initials appear when no image is available.</span></label><label>Provider ID<input id="provider-id" required pattern="[A-Za-z0-9_-]+" placeholder="my-organization"></label><p id="provider-error" class="error" role="alert" hidden></p><div class="dialog-actions"><button type="button" class="secondary" data-close="provider-dialog">Cancel</button><button type="submit" class="primary">Save provider</button></div></form></dialog>
+<noscript>This playground needs JavaScript. Visit the <a href="/superstac/docs/start/quickstart">quickstart</a> for other ways to search.</noscript>
 </body>
 </html>

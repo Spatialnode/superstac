@@ -7,7 +7,7 @@
     "node": ">=22.19.0"
   },
   "scripts": {
-    "dev": "next dev --hostname 127.0.0.1",
+    "dev": "next dev --webpack --hostname 127.0.0.1",
     "build": "next build --webpack",
     "check": "node scripts/check-node.mjs && fumadocs-mdx && tsc --noEmit",
     "start": "next start --hostname 0.0.0.0",
@@ -35,5 +35,6 @@
     "@types/react-dom": "^19.0.0",
     "typescript": "^5.9.0",
     "vite": "8"
-  }
+  },
+  "packageManager": "pnpm@9.8.0"
 }

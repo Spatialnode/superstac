@@ -15,104 +15,87 @@
 
 **Many catalogs. One search.**
 
-Search across [STAC](https://stacspec.org/) catalogs through one interface, with Python, Rust, or the command line.
+Search [STAC](https://stacspec.org/) catalogs from Python, Rust, or the command line.
+Query Earth Search, Microsoft Planetary Computer, and other catalogs together,
+then work with the results in one place.
 
-Query Element84, Microsoft Planetary Computer, and others through one API.
-Items come back deduplicated, with their collection IDs and asset keys
-normalized to canonical names — regardless of which catalog they came from.
+SuperSTAC can use your preferred collection and band names, remove duplicate item
+IDs, and report failed catalogs. If you often search the same area, save its
+metadata to GeoParquet and search it locally. Imagery stays with the provider.
 
-> **Status: alpha.** APIs and YAML schema are not yet stable. Pre-1.0; expect
-> breaking changes.
+SuperSTAC is **alpha software**. APIs and configuration may change before v1.0.
 
-**[What’s new in v0.3](https://spatialnode.com/superstac/docs/releases)** · [Try GeoParquet in Colab](https://colab.research.google.com/drive/1JIx8j0Vi7jypKe5Q6klgCzYQMFHMaKGc?usp=sharing) · [Local search benchmark](https://spatialnode.com/superstac/docs/guides/benchmarks)
+[Documentation](https://spatialnode.com/superstac) ·
+[What’s new in v0.3](https://spatialnode.com/superstac/docs/releases) ·
+[Try a notebook](https://spatialnode.com/superstac/docs/python/notebook)
 
-## Features
+## Start with Python
 
-- **Federated search:** Query multiple STAC catalogs concurrently with spatial, temporal, collection, and item filters.
-- **Reusable satellite-data inventories:** Save metadata for your area of interest and explore it repeatedly without querying every provider again. Fall back to live catalogs when saved coverage is missing or stale.
-- **Collection discovery:** Find available collections and the catalogs that serve them.
-- **Consistent names:** Map provider-specific collection IDs and asset keys to canonical names through configurable aliases.
-- **Deduplicated results:** Merge items across catalogs by item ID, with source provenance available in Rust and CLI results.
-- **Resilient requests:** Configure retries, per-catalog timeouts, and concurrency limits, with per-catalog failure reporting.
-- **Python, Rust, and CLI:** Use synchronous or asynchronous Python clients, embed the Rust engine, or search from the command line.
-
-## Why
-
-A single STAC catalog isn't always enough:
-
-- The collection you need lives somewhere else.
-- The catalog you usually use is down or rate-limited.
-- Different providers index the same scenes under different names.
-
-SuperSTAC queries every catalog you've registered, drops the ones that don't
-serve the requested collection, runs the rest concurrently with retry and
-timeouts, then merges and dedupes the results.
-
-## Documentation
-
-Read the [SuperSTAC documentation](https://spatialnode.com/superstac) for installation, tutorials, and API guides.
-
-- [Quickstart](https://spatialnode.com/superstac/docs/start/quickstart)
-- [Python guide](https://spatialnode.com/superstac/docs/python/overview)
-- [Rust guide](https://spatialnode.com/superstac/docs/rust/overview)
-- [Command-line guide](https://spatialnode.com/superstac/docs/cli/overview)
-- [Configuration reference](https://spatialnode.com/superstac/docs/reference/configuration)
-
-Try the [Python quickstart notebook](https://spatialnode.com/superstac/docs/python/notebook) for a two-catalog search, footprint map, and GeoJSON export in Colab or Jupyter.
-
-## Install
-
-### Rust library
-
-Add the crates you need:
+Use Python 3.9 or newer:
 
 ```bash
-cargo add superstac-core
-cargo add superstac-search
-cargo add superstac-engine
-cargo add superstac-cli
-cargo add superstac-config
-cargo add superstac-geoparquet
+python -m pip install superstac
 ```
 
-### From source
+Search Sentinel-2 imagery in two catalogs:
+
+```python
+from superstac import Client
+
+client = Client(catalogs=[
+    {"id": "earth-search", "url": "https://earth-search.aws.element84.com/v1"},
+    {"id": "microsoft", "url": "https://planetarycomputer.microsoft.com/api/stac/v1"},
+])
+try:
+    search = client.search(
+        collections=["sentinel-2-l2a"],
+        bbox=[6.0, 49.0, 7.0, 50.0],
+        datetime="2024-01-01T00:00:00Z/2024-01-31T23:59:59Z",
+        limit=5,
+    )
+    for item in search.items():
+        print(item["id"], item["collection"])
+    print(search.metadata)
+finally:
+    client.shutdown()
+```
+
+The limit applies to each catalog, so this can return up to ten items before
+duplicate IDs are removed. Check `search.metadata["failures"]` for any catalogs
+that failed. Results are Python dictionaries; `search.to_geojson()` returns a
+GeoJSON FeatureCollection.
+
+See the [Python guide](https://spatialnode.com/superstac/docs/python/overview)
+for more examples, including asyncio.
+
+## Use the command line
+
+Build with Rust 1.88 or newer:
 
 ```bash
 git clone https://github.com/spatialnode/superstac
 cd superstac
-cargo build --release
-```
-## Quickstart
-
-Drop a `superstac.yml` next to where you run the binary:
-
-```yaml
-catalogs:
-  - id: earth-search
-    url: https://earth-search.aws.element84.com/v1
-  - id: microsoft
-    url: https://planetarycomputer.microsoft.com/api/stac/v1
+cargo install --path crates/cli --features geoparquet
+cp docs/public/examples/superstac.yml ./superstac.yml
 ```
 
-Then:
+The sample configuration includes Earth Search and Microsoft Planetary Computer.
+Edit it to use your own catalogs, then run:
 
 ```bash
-# what collections does each catalog serve?
+# List available collections
 superstac collections
 
-# search across all of them
-superstac search -c sentinel-2-l2a -b 6.0,49.0,7.0,50.0 -d 2024-01-01/2024-01-31 -l 50
+# Search both catalogs
+superstac search -c sentinel-2-l2a -b 6.0,49.0,7.0,50.0 -l 5
 
-# pipe to jq
-superstac --json search -c landsat-c2-l2 -l 10 | jq '.metadata'
-
-# inspect a single collection
-superstac collections microsoft sentinel-2-l2a
+# Read search metadata as JSON
+superstac --json search -c sentinel-2-l2a -l 5 | jq '.metadata'
 ```
 
-Run `superstac --help` for the full surface. For saved metadata inventories, build
-with `--features geoparquet` and follow the [GeoParquet guide](crates/geoparquet/README.md).
-Published Python wheels include this backend.
+Run `superstac --help` for commands and options. The
+[configuration reference](https://spatialnode.com/superstac/docs/reference/configuration)
+explains aliases, timeouts, and retries.
 
 ## Browser / WebAssembly
 
@@ -123,103 +106,38 @@ a browser example, and browser-specific limitations. The docs include a
 and a [JavaScript guide](https://spatialnode.com/superstac/docs/wasm/overview).
 
 ## Configuration
+## Save metadata for repeated searches
 
-Only `id` and `url` are required per catalog. Common optional fields:
+GeoParquet inventories let you reuse metadata for an area and date range. Search
+saved data only, or use automatic mode to query live catalogs when the saved data
+is too old or does not cover your query. Python wheels include GeoParquet support.
 
-```yaml
-catalogs:
-  - id: cdse
-    url: catalog-url
-    # Only needed when the catalog uses non-canonical names.
-    collection_aliases:
-      sentinel-2-l2a: S2MSI2A
-    asset_aliases:
-      sentinel-2-l2a:
-        blue: B02
-        green: B03
-        red: B04
+[Try the GeoParquet notebook](https://colab.research.google.com/drive/1JIx8j0Vi7jypKe5Q6klgCzYQMFHMaKGc?usp=sharing) ·
+[Read the guide](https://spatialnode.com/superstac/docs/guides/geoparquet) ·
+[See the benchmark](https://spatialnode.com/superstac/docs/guides/benchmarks)
 
-settings:
-  health_check_strategy: "15m"
-  deduplicate_items: true
-  unify_response: true
-  max_concurrent_catalogs: 8
-  per_catalog_timeout_seconds: 30
-  max_retry_attempts: 2
-```
-
-The full schema and every setting is documented inline at
-[`crates/core/src/models/settings.rs`](https://github.com/spatialnode/superstac/blob/main/crates/core/src/models/settings.rs).
-
-## Library usage
-
-The CLI is a thin wrapper over [`superstac-engine`]. To embed in your own
-binary:
-
-```rust
-use superstac_config::init_from_yaml;
-use superstac_core::models::storage::Storage;
-use superstac_engine::SuperSTACEngine;
-use superstac_search::query::SearchQuery;
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let db = init_from_yaml(Storage::Memory, "superstac.yml")?;
-    let engine = SuperSTACEngine::new(db);
-    engine.start().await?;
-
-    let response = engine
-        .search(SearchQuery {
-            collections: vec!["sentinel-2-l2a".to_string()],
-            limit: Some(20),
-            bbox: None,
-            datetime: None,
-            ids: None,
-            intersects: None,
-            sortby: None,
-        })
-        .await?;
-
-    println!("found {} items", response.metadata.total_items);
-    Ok(())
-}
-```
-
-## Crates
-
-| Crate | Purpose |
-|-------|---------|
-| [`superstac-core`](https://crates.io/crates/superstac-core) | domain models, errors, storage trait |
-| [`superstac-config`](https://crates.io/crates/superstac-config) | YAML config loading |
-| [`superstac-search`](https://crates.io/crates/superstac-search) | federated search logic |
-| [`superstac-geoparquet`](https://crates.io/crates/superstac-geoparquet) | Reusable satellite-data inventories for repeated searches |
-| [`superstac-engine`](https://crates.io/crates/superstac-engine) | runtime (health, introspection, search orchestration) |
-| [`superstac-cli`](https://crates.io/crates/superstac-cli) | the `superstac` binary |
-
-## Logs and debugging
-
-Include `superstac --version` or Python’s `superstac.__version__` in bug reports.
-Search diagnostics also include `metadata.superstac_version`. Provider requests
-identify the library as `superstac/<version>` through the User-Agent header.
-New ingested and compacted Parquet files record the writer version in their footer.
-
-
-Logs flow through `tracing`. The default level comes from `settings.log_level`
-in your config; override at runtime:
+## Use Rust
 
 ```bash
-superstac -v search -c sentinel-2-l2a       # debug
-superstac -q search -c sentinel-2-l2a       # warn only
-RUST_LOG=superstac_search=debug superstac search -c sentinel-2-l2a
+cargo add superstac-core superstac-config superstac-search superstac-engine
+cargo add tokio --features macros,rt-multi-thread
 ```
 
-## Roadmap
+The [Rust guide](https://spatialnode.com/superstac/docs/rust/overview) has a complete
+search example. Use `superstac-engine` to manage catalogs and run searches;
+`superstac-core`, `superstac-config`, and `superstac-search` provide the types,
+configuration loading, and search queries.
 
-See [ROADMAP.MD](ROADMAP.MD) for short-term, near-term, and long-term priorities,
-plus the v1.0 release checklist.
+## Help and contributing
+
+For unexpected results, start with
+[troubleshooting](https://spatialnode.com/superstac/docs/reference/troubleshooting).
+To report a bug, [open an issue](https://github.com/spatialnode/superstac/issues)
+with your version, query, and failure metadata. Remove credentials from any
+configuration you share.
+
+See [ROADMAP.MD](ROADMAP.MD) for planned work.
 
 ## License
 
-MIT. See [LICENSE](https://github.com/spatialnode/superstac/blob/main/LICENSE).
-
-Feedback and issues welcome — this is early. If you try it and you see any bug, feel free to open an issue!
+[MIT](LICENSE).

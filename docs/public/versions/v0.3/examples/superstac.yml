@@ -1,0 +1,24 @@
+providers: []
+
+catalogs:
+  - id: earth-search
+    url: https://earth-search.aws.element84.com/v1
+  - id: microsoft
+    url: https://planetarycomputer.microsoft.com/api/stac/v1
+
+settings:
+  health_check_strategy: hourly
+  healthy_status_code_range: [200, 299]
+  auto_fix_duplicate_catalog_id: true
+  auto_fix_duplicate_provider_id: true
+  log_level: info
+  logging_enabled: true
+  search_healthy_catalogs_only: true
+  deduplicate_items: true
+  unify_response: true
+  max_concurrent_catalogs: 8
+  per_catalog_timeout_seconds: 30
+  max_retry_attempts: 2
+  retry_initial_backoff_ms: 100
+  retry_max_backoff_ms: 2000
+  max_items_per_catalog: 1000

@@ -1,0 +1,55 @@
+---
+title: Playground
+description: Search your catalogs, adjust settings, and preview scenes on a map.
+---
+
+<a href="/superstac/playground">Open the SuperSTAC playground →</a>
+
+The map fills the playground. Search controls, scene results, and activity open in floating panels without resizing it. No installation needed. Start with Earth Search and Planetary Computer, or add a public STAC API of your own.
+
+## Set up a search
+
+1. Open **Find imagery**, then **Catalogs**. Choose **Browse STAC Index** to search the public API directory by name, place, or topic. Choose a catalog, review its details, and save it. Or use **Add by URL** to enter any browser-accessible STAC API URL. In **Catalogs**, edit, remove, or select catalogs. Providers are labels for organizing catalogs; removing a provider keeps its catalogs. Open a catalog’s editor to set collection and asset aliases. Provider editors accept an optional logo URL; initials appear when the logo is missing or unavailable.
+2. Use **Find collections** to browse each selected catalog. Choose a collection to put its ID into the search form.
+3. Pan and zoom the map, then open **Find imagery** and choose **Use visible map area**, or select a preset area. Choose dates and click **Search scenes**. Close the panel with **×** to return to the map. The **Search scenes** button stays at the bottom of the panel while filters scroll. Starting a search closes the controls. You can also enter a bounding box, scene IDs, sorting, or a GeoJSON geometry. A geometry replaces the selected area.
+4. In **Settings**, adjust deduplication, alias normalization, concurrent catalogs, timeout, attempts, and the item cap. Click **Apply settings** before searching.
+
+Settings and catalogs stay in the current tab until you reload. **Reset workspace** in Settings resets the workspace. Custom catalogs must allow browser requests (CORS).
+
+## Try collection and asset aliases
+
+In **Catalogs**, expand **Try aliases with a real search** and load the example. It selects Earth Search and Planetary Computer, maps `optical` to their `sentinel-2-l2a` collections, and maps the `visual` asset to `rgb`. Run the search, then expand **Names in this result** on a scene to see the mappings. The example enables response normalization and changes the selected catalogs; your other catalogs remain available.
+
+You can edit these mappings as name pairs in each catalog’s editor. Asset aliases belong to a collection name in your app. **Edit as JSON** is available for larger configurations.
+
+The directory loads from the [STAC Index API](https://stacindex.org/api/catalogs) only when opened and is cached for the current page session. It lists public API entries, omitting static JSON catalogs and entries marked private or protected. Directory listings are not connection checks: use **Check connections** after adding a catalog. Manual URL entry remains available if the directory is unreachable.
+
+## Explore scenes
+
+Results appear in a collapsible panel over the map, keeping the map full-size. Selecting a scene hides the panel; **Show results** brings it back.
+
+Each card tries the thumbnail first, then the catalog’s rendered preview or another image if the thumbnail is missing or fails to load. It also shows capture date, cloud cover, assets, and source catalogs. **Preview on map** opens the scene on the OpenFreeMap basemap. Choose an image or GeoTIFF from **Preview asset**. Image previews are positioned over the scene bounds for a quick look; their alignment is approximate. GeoTIFF previews use the file’s georeferencing and load only when selected.
+
+The overview map shows the search area and available scene footprints. Click a footprint or a scene’s preview button to select it. You can also open the original scene in STAC Map or STAC Browser in a new tab; those external services choose their own basemaps. The playground does not embed either service.
+
+Preview support depends on asset encoding, CORS, HTTP range support, and any signing or authentication the provider requires. SuperSTAC does not sign asset URLs. When an asset cannot be displayed, try another asset or an external viewer. Scenes without a public record URL can still show their footprint here, but cannot open in the external viewers.
+
+By default, matching item IDs become one record with both source labels. The scene limit applies to each catalog: five scenes from each of two catalogs can produce up to ten results. Cloud cover describes the whole scene, which may be larger than your search area.
+
+If one catalog fails, results from the others still appear. The page distinguishes a failed request from a successful search with no matches. **Full search response** shows the returned JSON.
+
+## Activity, timing, and catalog status
+
+Open **Activity** in the map’s status bar to see search and discovery operations, individual HTTP requests (including retries and pagination), status codes, and response times. Filter to errors or copy the log. The panel retains the latest 200 entries in memory; it does not send logs to a service. Request query values and request/response bodies are not recorded.
+
+Request time ends when response headers arrive. The operation total includes WASM initialization when needed, retries, pagination, body processing, and result rendering. These are measured browser timings, not server processing times. Map tiles and imagery are outside this catalog activity log; Developer Tools → Network shows those requests too.
+
+Catalog badges show the last observed response or search outcome, including the last request’s response time. **Connection checks → Check connections** in Catalogs makes a small collections request to each selected catalog, sequentially, with an eight-second timeout. A green badge is evidence of the last request, not a promise of continuous uptime. A red badge may mean CORS, a network error, timeout, or a catalog failure. Hover over a badge for its timestamp.
+
+These are playground activity logs, not Rust `tracing` events. The WASM package does not currently expose a tracing subscriber or request-event callback.
+
+Requests use the browser’s User-Agent, which does not identify SuperSTAC. Browsers control that header; Chrome drops overrides made through Fetch. A custom identification header would require the catalog to allow it through CORS, so the playground adds no identification header. See [MDN’s browser header restrictions](https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header).
+
+## Use the same search in your app
+
+Choose **View code** at the top of the controls to open a full-size example with a **Copy code** button. The example updates with your selected catalogs, applied settings, and current filters. It uses the intended npm import, `superstac-wasm`, as it would appear in a consuming application. See the [browser guide](/docs/v0.3/wasm/overview) for current build and installation instructions.

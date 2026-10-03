@@ -1,0 +1,49 @@
+name: Docs checks
+
+on:
+  pull_request:
+    paths:
+      - 'docs/**'
+      - '.github/workflows/docs-checks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build and type-check
+        run: docker build --platform linux/amd64 --tag superstac-docs:test docs
+
+      - name: Test the built container
+        run: |
+          docker run --detach --name docs-test --publish 127.0.0.1:3000:3000 superstac-docs:test
+          trap 'docker logs docs-test; docker rm --force docs-test' EXIT
+          ready=false
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:3000/superstac > /dev/null; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ready" != true ]; then
+            echo 'Documentation container did not become ready' >&2
+            exit 1
+          fi
+          node docs/scripts/check-links.mjs
