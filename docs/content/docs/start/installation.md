@@ -1,9 +1,13 @@
 ---
 title: Installation
-description: Install the Python bindings, Rust crates, or command-line tool and choose the right interface.
+description: Build the browser binding or install the Python bindings, Rust crates, or command-line tool and choose the right interface.
 ---
 
-SuperSTAC has three interfaces over the same Rust search engine. Choose Python for notebooks and pipelines, Rust for embedding, or the CLI for terminal workflows.
+Choose the browser binding for JavaScript apps, Python for notebooks and pipelines, Rust for native applications, or the CLI for terminal workflows.
+
+## Browser / WebAssembly
+
+[Try a live search](/docs/wasm/playground) without installing anything. To use it in your app, follow the [browser package build and usage guide](/docs/wasm/overview). The browser package is currently built from source.
 
 ## Python
 

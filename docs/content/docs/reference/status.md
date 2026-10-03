@@ -7,6 +7,7 @@ SuperSTAC is a pre-1.0, MIT-licensed project. This documentation targets version
 
 ## Available
 
+- Browser WebAssembly binding for live STAC search, with JavaScript and TypeScript support.
 - Python sync and async clients backed by Rust.
 - GeoParquet inventories, coverage-aware local search, incremental overlays, compaction and cleanup.
 - A Tokio-based Rust engine and command-line tool.
@@ -15,6 +16,8 @@ SuperSTAC is a pre-1.0, MIT-licensed project. This documentation targets version
 - Concurrent searches with per-catalog caps, retries, and timeouts.
 - Collection/asset aliases and optional response normalization.
 - Item-ID deduplication, failure metadata, and Rust/CLI item provenance.
+
+The [browser binding](/docs/wasm/overview) supports live catalogs only. GeoParquet, filesystem configuration, background health monitoring, and asset signing are not included.
 
 ## Not implemented yet
 

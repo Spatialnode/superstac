@@ -1,0 +1,42 @@
+name: WASM checks
+
+on:
+  pull_request:
+    paths:
+      - 'crates/wasm/**'
+      - 'crates/core/**'
+      - 'crates/search/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/wasm.yml'
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: '1.88.0'
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: crates/wasm/package-lock.json
+      - run: cargo install wasm-pack --version 0.13.1 --locked --jobs 2
+      - run: npm ci
+        working-directory: crates/wasm
+      - run: npm run build
+        working-directory: crates/wasm
+      - run: npx playwright install --with-deps chromium
+        working-directory: crates/wasm
+      - run: npm run check
+        working-directory: crates/wasm

@@ -12,7 +12,7 @@ From the repository root, using Rust 1.88 or newer:
 ```sh
 rustup target add wasm32-unknown-unknown
 cargo install wasm-pack --version 0.13.1 --locked
-wasm-pack build crates/wasm --target web --release --locked
+wasm-pack build crates/wasm --target web --release --locked --jobs 1
 python3 -m http.server 8000 --directory crates/wasm
 ```
 
@@ -20,6 +20,11 @@ Open http://localhost:8000/examples/ to try a live Earth Search query.
 `crates/wasm/pkg` contains the generated JavaScript module, WebAssembly binary,
 TypeScript declarations, and package metadata. Build artifacts are ignored by Git.
 The package has not been published to npm.
+
+The docs also include a [browser guide](../../docs/content/docs/wasm/overview.md)
+and [live playground](../../docs/content/docs/wasm/playground.mdx). For local docs
+work, `node docs/scripts/prepare-wasm.mjs` from the repository root copies this
+build into the docs assets without compiling Rust.
 
 ## JavaScript / TypeScript
 
@@ -95,9 +100,17 @@ cd crates/wasm
 npm ci
 npm run build
 npx playwright install chromium
-npm test
-npx tsc --noEmit --strict --target ES2022 --module ESNext --moduleResolution bundler tests/types.ts
+npm run check
 ```
+
+For routine checks against an already-built package, run just `npm run check`.
+It type-checks the public API and runs one headless browser sequentially; it does
+not compile Rust or run the native workspace tests. `npm run build` uses one
+Cargo worker. The dedicated **WASM checks** GitHub Actions workflow builds from
+source and runs the same checks on CI; it can be run manually on its own.
+
+The TypeScript check includes `ESNext.Disposable` because the generated bindings
+expose `Symbol.dispose`. You can still use `client.free()` explicitly.
 
 Set `CHROME_PATH` to use an existing Chrome executable. The browser suite runs
 against a local STAC fixture server and checks pagination, retries, timeouts,

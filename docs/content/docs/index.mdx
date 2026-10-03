@@ -1,6 +1,6 @@
 ---
 title: Introduction
-description: Search across STAC catalogs through one interface, with Python, Rust, or the command line.
+description: Search across STAC catalogs through one interface, with JavaScript, Python, Rust, or the command line.
 ---
 
 import { Cards, Card } from 'fumadocs-ui/components/card';
@@ -9,11 +9,12 @@ import { Cards, Card } from 'fumadocs-ui/components/card';
 
 Your data lives across catalogs. SuperSTAC gives you one place to search them: register compatible STAC APIs, submit a query, and work with a combined set of items.
 
-The same Rust engine powers a Python package, a Rust library, and a command-line tool. It handles source selection, concurrent requests, collection and asset aliases, duplicate IDs, and per-catalog failures.
+Shared Rust search logic powers a browser binding, a Python package, a Rust library, and a command-line tool. It handles source selection, concurrent requests, collection and asset aliases, duplicate IDs, and per-catalog failures.
 
 For the background and motivation, read [Introducing SuperSTAC: Many catalogs. One search.](https://www.spatialnode.net/articles/introducing-superstac-many-catalogs-one-search2a5e11)
 
 <Cards>
+  <Card title="Try it in your browser" description="Search two catalogs and explore scene records. No installation needed." href="/docs/wasm/playground" />
   <Card title="What’s new in v0.3" description="Save your study-area metadata and explore it repeatedly, with live catalog fallback." href="/docs/releases" />
   <Card title="Run your first search" description="A complete example against two catalogs." href="/docs/start/quickstart" />
   <Card title="Understand federation" description="From one query to multiple sources." href="/docs/concepts/federation" />
@@ -34,6 +35,7 @@ SuperSTAC is **alpha software**. Start with [installation](/docs/start/installat
 
 | Interface | A good fit for |
 | --- | --- |
+| [Browser / WASM](/docs/wasm/overview) | JavaScript and TypeScript apps that search live catalogs. |
 | [Python Client](/docs/python/overview) | Notebooks, scripts, and synchronous pipelines. |
 | [Python AsyncClient](/docs/python/async) | Applications that already use asyncio. |
 | [Rust engine](/docs/rust/overview) | Native integrations on Tokio. |

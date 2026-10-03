@@ -118,7 +118,9 @@ Published Python wheels include this backend.
 
 Build the browser binding to search live STAC catalogs from JavaScript or TypeScript.
 See the [WASM guide](crates/wasm/README.md) for build instructions, API usage,
-a browser example, and browser-specific limitations.
+a browser example, and browser-specific limitations. The docs include a
+[live playground](https://spatialnode.com/superstac/docs/wasm/playground)
+and a [JavaScript guide](https://spatialnode.com/superstac/docs/wasm/overview).
 
 ## Configuration
 

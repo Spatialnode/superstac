@@ -20,7 +20,7 @@ const crimson = localFont({
 export const metadata: Metadata = {
   metadataBase: new URL('https://spatialnode.com'),
   title: { default: 'SuperSTAC — Many catalogs. One search.', template: '%s | SuperSTAC' },
-  description: 'Search across STAC catalogs through one interface, with Python, Rust, or the command line.',
+  description: 'Search across STAC catalogs through one interface, with JavaScript, Python, Rust, or the command line.',
   icons: { icon: '/superstac/favicon.svg' },
 };
 

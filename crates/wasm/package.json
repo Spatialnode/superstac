@@ -3,8 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "wasm-pack build --target web --release --locked",
-    "test": "node tests/browser.mjs"
+    "build": "wasm-pack build --target web --release --locked --jobs 1",
+    "test": "node tests/browser.mjs",
+    "check:types": "tsc -p tsconfig.json",
+    "check": "npm run check:types && npm test"
   },
   "devDependencies": {
     "playwright": "1.56.1",

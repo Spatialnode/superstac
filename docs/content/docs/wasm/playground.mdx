@@ -1,0 +1,23 @@
+---
+title: Try a search
+description: Search Sentinel-2 scenes across two catalogs, right in your browser.
+full: true
+---
+
+import { WasmPlayground } from '@/components/wasm-playground';
+
+No installation needed. Pick an area, search one or both catalogs, and download the scene records as GeoJSON. The same browser binding is available for [your own JavaScript app](/docs/wasm/overview).
+
+[Open the playground in its own window](/superstac/playground/index.html).
+
+<WasmPlayground />
+
+## Reading the results
+
+Each card is a STAC scene record. The catalog labels show where it was found. When both catalogs return the same item ID, SuperSTAC keeps one record and lists both sources.
+
+The scene limit applies to each catalog. Five scenes from each of two catalogs can produce up to ten results, or fewer when IDs overlap. The results are a sample, not a count of every scene available in that area.
+
+Cloud cover describes the whole satellite scene, which can be larger than your search area. This playground searches metadata; it does not download the image files.
+
+If one catalog fails, results from the other can still appear. A failed request is shown separately from a successful search with no matches.

@@ -51,3 +51,26 @@ The direct **Open in Colab** links target this file on GitHub's `main` branch an
 [Deploy docs](../.github/workflows/docs-deploy.yml) runs on **published GitHub releases**, including prereleases, and through **Actions → Deploy docs → Run workflow**. Ordinary pushes and tag creation alone do not deploy. Publish a release only when its corresponding package is available; the workflow does not publish packages or wait for a separate package-publishing workflow.
 
 The workflow checks out the release tag or the manually supplied Git ref. It builds an AMD64 image, runs the Dockerfile's type check and production build, starts the resulting container, and checks pages, links, assets, search, and the 404 response. Only then does it publish to GHCR and deploy through the Coolify API. Use an x86-64 Coolify server for this workflow; an ARM server needs a matching runner/image platform.
+
+## Browser playground
+
+The WASM guide is in `content/docs/wasm`. The playground is a small static app
+in `public/playground`, embedded in the docs with `components/wasm-playground.tsx`.
+It loads WASM only when a visitor searches. Keep API internals in the guide and
+code example; use scene and catalog language in the results.
+
+For local work, reuse an existing build without compiling Rust:
+
+```sh
+node docs/scripts/prepare-wasm.mjs
+```
+
+This copies `crates/wasm/pkg` into the ignored `docs/public/wasm` directory.
+If it is missing, download the `wasm-web` artifact from the **WASM checks** workflow
+and extract it there, or follow the binding's build instructions. Docs startup
+never builds Rust. Open `/superstac/docs/wasm/playground` on the docs dev server.
+
+The docs deployment workflow runs WASM checks for the same Git ref and downloads
+its tested browser package before building the docs image. No generated WASM
+binaries are committed. The playground tests run one headless browser against
+fixture responses; live provider availability is not a CI requirement.

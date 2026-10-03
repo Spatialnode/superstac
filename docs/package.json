@@ -14,7 +14,8 @@
     "postinstall": "node scripts/check-node.mjs && fumadocs-mdx",
     "test:links": "node scripts/check-links.mjs",
     "predev": "node scripts/check-node.mjs && node scripts/sync-assets.mjs",
-    "prebuild": "node scripts/check-node.mjs && node scripts/sync-assets.mjs"
+    "prebuild": "node scripts/check-node.mjs && node scripts/sync-assets.mjs",
+    "prepare:wasm": "node scripts/prepare-wasm.mjs"
   },
   "dependencies": {
     "@tailwindcss/postcss": "4.3.3",

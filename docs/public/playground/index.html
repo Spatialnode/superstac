@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Search satellite scenes · SuperSTAC</title>
+<link rel="stylesheet" href="./playground.css">
+<script type="module" src="./playground.js"></script>
+</head>
+<body>
+<main>
+  <header>
+    <a class="brand" href="/superstac/docs/wasm/overview" target="_top">SuperSTAC <span>/ playground</span></a>
+    <h1>Find scenes across catalogs.</h1>
+    <p>Choose a place and a date range. SuperSTAC searches the catalogs you select and brings their results together.</p>
+  </header>
+  <form id="search-form">
+    <fieldset id="controls">
+      <legend class="sr-only">Search options</legend>
+      <div class="form-grid">
+        <label>Area<select id="area"><option value="alps">French Alps</option><option value="barcelona">Barcelona coast</option><option value="nairobi">Nairobi</option></select></label>
+        <label>From<input id="from" type="date" value="2024-06-01" required></label>
+        <label>To<input id="to" type="date" value="2024-06-30" required></label>
+        <label>Scenes per catalog<select id="limit"><option value="5">5 scenes</option><option value="10">10 scenes</option><option value="20">20 scenes</option></select></label>
+      </div>
+      <p class="hint">Searching Sentinel-2 surface reflectance (L2A). Dates refer to when the satellite captured the scene.</p>
+      <div class="catalog-options" role="group" aria-label="Catalogs to search">
+        <label><input type="checkbox" name="catalog" value="earth-search" checked> Earth Search</label>
+        <label><input type="checkbox" name="catalog" value="microsoft" checked> Planetary Computer</label>
+      </div>
+      <div class="form-bottom"><span>Matching scene IDs are combined automatically.</span><button type="submit" id="search-button">Search scenes <span aria-hidden="true">→</span></button></div>
+    </fieldset>
+    <p id="validation" class="error" role="alert" hidden></p>
+  </form>
+  <div id="status" role="status" aria-live="polite">Ready when you are. Searches run in your browser.</div>
+  <section id="results" aria-label="Search results" aria-busy="false">
+    <div id="empty" class="empty"><span class="empty-icon" aria-hidden="true">⌕</span><h2>A few scenes to start with.</h2><p>Try the French Alps in June. You’ll see capture dates, cloud cover, and where each scene was found.</p></div>
+    <div id="result-content" hidden>
+      <div class="results-heading"><div><h2 id="result-title"></h2><p id="result-query" class="hint"></p></div><button id="download" class="secondary" type="button" disabled>Download GeoJSON</button></div>
+      <div id="summary" class="summary"></div>
+      <div id="catalog-status"></div>
+      <div id="scenes" class="scenes"></div>
+      <details><summary>Full search response</summary><pre id="response"></pre></details>
+    </div>
+  </section>
+  <details id="code-details"><summary>Use this search in JavaScript</summary><p class="hint">After building the <a href="/superstac/docs/wasm/overview" target="_top">browser package</a>, use this code in your app.</p><button id="copy" class="secondary" type="button">Copy code</button><pre id="code"></pre><p id="copy-status" role="status" class="hint"></p></details>
+  <footer>These are scene records, not downloaded images. Results come directly from the selected catalogs; availability and browser access can vary.</footer>
+  <noscript>This playground needs JavaScript. You can also search using the <a href="/superstac/docs/start/quickstart" target="_top">Python client or command line</a>.</noscript>
+</main>
+</body>
+</html>

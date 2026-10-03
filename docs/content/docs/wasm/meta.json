@@ -1,0 +1,5 @@
+{
+  "title": "Browser / WASM",
+  "pages": ["playground", "overview"],
+  "defaultOpen": true
+}
