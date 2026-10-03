@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 import Script from 'next/script';
-import { RootProvider } from 'fumadocs-ui/provider/next';
+import { DocsProvider } from '@/components/docs-provider';
 import './global.css';
 
 // Match Spatialnode's Inter UI and Crimson Pro display typography, served locally.
@@ -29,9 +29,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${crimson.variable}`}>
-        <RootProvider theme={{ storageKey: 'theme', defaultTheme: 'system', enableSystem: true, disableTransitionOnChange: true }} search={{ options: { api: '/superstac/api/search' } }}>
+        <DocsProvider>
           {children}
-        </RootProvider>
+        </DocsProvider>
         {process.env.NODE_ENV === 'production' && (
           <>
             <Script

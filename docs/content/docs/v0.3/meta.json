@@ -1,0 +1,15 @@
+{
+  "title": "v0.3",
+  "pages": [
+    "index",
+    "start",
+    "concepts",
+    "guides",
+    "python",
+    "rust",
+    "cli",
+    "reference",
+    "releases"
+  ],
+  "root": "version"
+}
