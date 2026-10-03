@@ -13,6 +13,7 @@
     "start": "next start --hostname 0.0.0.0",
     "postinstall": "node scripts/check-node.mjs && fumadocs-mdx",
     "test:links": "node scripts/check-links.mjs",
+    "test:examples": "node scripts/check-code-examples.mjs",
     "predev": "node scripts/check-node.mjs && node scripts/sync-assets.mjs",
     "prebuild": "node scripts/check-node.mjs && node scripts/sync-assets.mjs",
     "prepare:wasm": "node scripts/prepare-wasm.mjs"

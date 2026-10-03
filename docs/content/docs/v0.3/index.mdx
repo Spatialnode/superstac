@@ -1,6 +1,6 @@
 ---
 title: Introduction
-description: Search across STAC catalogs through one interface, with JavaScript, Python, Rust, or the command line.
+description: Unified search across STAC catalogs.
 ---
 
 import { Cards, Card } from 'fumadocs-ui/components/card';
@@ -11,16 +11,11 @@ Search several STAC catalogs with one query. Add the catalogs you use, choose an
 
 Try it in your browser, use Python in a notebook or script, add Rust to your application, or work from the command line. SuperSTAC searches catalogs in parallel and reports which ones failed, so you can check whether the results are complete.
 
-For the background and motivation, read [Introducing SuperSTAC: Many catalogs. One search.](https://www.spatialnode.net/articles/introducing-superstac-many-catalogs-one-search2a5e11)
-
 <Cards>
-  <Card title="Try it in your browser" description="Search two catalogs and explore scene records. No installation needed." href="/docs/v0.3/wasm/playground" />
-  <Card title="What’s new in v0.3" description="Save your study-area metadata and explore it repeatedly, with live catalog fallback." href="/docs/v0.3/releases" />
-  <Card title="Run your first search" description="A complete example against two catalogs." href="/docs/v0.3/start/quickstart" />
-  <Card title="Understand federation" description="From one query to multiple sources." href="/docs/v0.3/concepts/federation" />
-  <Card title="Use Python" description="Scripts, notebooks, and asyncio applications." href="/docs/v0.3/python/overview" />
-  <Card title="Try the notebook" description="Search, map, and export in Colab or Jupyter." href="/docs/v0.3/python/notebook" />
-  <Card title="Use Rust" description="Embed the engine in your application." href="/docs/v0.3/rust/overview" />
+  <Card title="Try it now" description="Search and preview imagery in the browser. No installation." href="/docs/v0.3/wasm/playground" />
+  <Card title="Run your first search" description="Complete examples in Python, JavaScript, Rust, and CLI." href="/docs/v0.3/start/quickstart" />
+  <Card title="Adapt a search recipe" description="Polygons, clearer scenes, asset links, and GeoJSON export." href="/docs/v0.3/guides/recipes" />
+  <Card title="Keep metadata for later" description="Save a study area and search it locally with GeoParquet." href="/docs/v0.3/guides/geoparquet" />
 </Cards>
 
 ## What you can build
@@ -40,3 +35,17 @@ Start with [installation](/docs/v0.3/start/installation), then [run your first s
 | [Python AsyncClient](/docs/v0.3/python/async) | Applications that already use asyncio. |
 | [Rust engine](/docs/v0.3/rust/overview) | Native integrations on Tokio. |
 | [CLI](/docs/v0.3/cli/overview) | Terminal exploration and shell workflows. |
+
+## What works where?
+
+| Capability | Python | JavaScript / WASM | Rust | CLI |
+| --- | --- | --- | --- | --- |
+| Live search and collection discovery | Yes | Yes | Yes | Yes |
+| Collection and asset aliases | Yes | Yes | Yes | Yes |
+| Retries, timeouts, deduplication | Yes | Yes | Yes | Yes |
+| GeoJSON geometry filter | Yes | Yes | Yes | Bounding box only |
+| Source catalog on each returned item | Not exposed | Yes | Yes | JSON output |
+| Saved GeoParquet inventories | Included in wheels | No | Optional feature | Optional feature |
+| YAML configuration | Yes | No | Yes | Yes |
+
+SuperSTAC returns metadata and asset links. Image rendering in the playground is a separate feature. For current limits, see [status and limitations](/docs/v0.3/reference/status).

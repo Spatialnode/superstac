@@ -58,4 +58,8 @@ Requests use the browser’s User-Agent, which does not identify SuperSTAC. Brow
 
 ## Use the same search in your app
 
-Choose **View code** at the top of the controls to open a full-size example with a **Copy code** button. The example updates with your selected catalogs, applied settings, and current filters. It uses `@spatialnode/superstac-wasm`, the same import for a prebuilt package or an npm release. See the [browser guide](/docs/v0.3/wasm/overview) for installation without a Rust toolchain.
+Choose **View code** at the top of the controls. Pick **JavaScript**, **Python**, **Rust**, or **CLI** to get a colored example using your selected catalogs, applied settings, and current filters.
+
+**Copy** copies the selected file as plain text. Python and JavaScript have one script. Rust includes `src/main.rs`, `Cargo.toml`, and `superstac.yml`; CLI includes `search.sh` and `superstac.yml`. Use the **File** selector to copy each file. **Setup guide** opens the installation or usage instructions for that interface.
+
+JavaScript uses `@spatialnode/superstac-wasm`. See the [browser guide](/docs/v0.3/wasm/overview) for installation without Rust. The CLI does not support GeoJSON geometry filters: choose another language or switch the search to a bounding box. Native clients perform startup discovery and health checks, so catalog selection can differ from browser results.

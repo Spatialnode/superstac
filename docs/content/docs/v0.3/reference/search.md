@@ -3,7 +3,7 @@ title: Search parameters
 description: Choose collections, areas, dates, item limits, and sort order for a search.
 ---
 
-Pass filters as keyword arguments in Python or as a `SearchQuery` in Rust. In live mode, SuperSTAC sends them to each selected catalog. For saved metadata, see the [GeoParquet guide](/docs/v0.3/guides/geoparquet).
+Pass filters as keyword arguments in Python, an object in JavaScript, a `SearchQuery` in Rust, or flags in the CLI. In live mode, SuperSTAC sends them to each selected catalog. For saved metadata, see the [GeoParquet guide](/docs/v0.3/guides/geoparquet).
 
 | Field | Python shape | Behavior |
 | --- | --- | --- |
@@ -40,6 +40,12 @@ Choose either `bbox` or `intersects` for a query. Use a closed GeoJSON polygon r
 SuperSTAC reads result pages from each catalog until it reaches the smaller of `limit` and `max_items_per_catalog`, or there are no more items. Python receives the collected results at once; there is no cursor for requesting the next combined page.
 
 With three catalogs and `limit=10`, you can get up to 30 items before duplicates are removed. The returned count can be smaller, and more matching items may exist in the catalogs.
+
+## Examples you can adapt
+
+[Search recipes](/docs/v0.3/guides/recipes) includes complete Python and JavaScript examples for a GeoJSON area, per-catalog sorting, looking up returned IDs, inspecting assets, and filtering the records you already fetched.
+
+JavaScript uses the same field names. It can omit `collections`; Python requires an explicit list. The CLI supports the listed filters except `intersects`.
 
 ## Unsupported options
 

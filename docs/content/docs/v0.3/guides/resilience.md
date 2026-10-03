@@ -10,7 +10,10 @@ Use these settings to control how much work a search can do and how long it wait
 ```python
 from superstac import Client
 
-client = Client(settings={
+client = Client(catalogs=[{
+    "id": "earth-search",
+    "url": "https://earth-search.aws.element84.com/v1",
+}], settings={
     "max_concurrent_catalogs": 4,
     "per_catalog_timeout_seconds": 20,
     "max_retry_attempts": 2,
@@ -18,6 +21,11 @@ client = Client(settings={
     "retry_max_backoff_ms": 2000,
     "max_items_per_catalog": 100,
 })
+try:
+    result = client.search(collections=["sentinel-2-l2a"], limit=5)
+    print(len(result), result.metadata["failures"])
+finally:
+    client.shutdown()
 ```
 
 Use positive values for these settings. `max_retry_attempts` includes the first attempt, so `2` allows one retry and `1` turns retries off. The wait between retries doubles until it reaches `retry_max_backoff_ms`.
@@ -61,3 +69,7 @@ settings:
 Disabling the monitor does not skip the initial health check. The global `enable_background_health_monitor` update is not currently applied by memory storage; use the per-catalog setting above.
 
 Always call `shutdown()` (or `await client.shutdown()`) to stop background tasks when finished.
+
+## Browser searches
+
+The WASM client supports concurrency, per-attempt timeout, attempt count, and item caps in its constructor’s `settings`. It does not expose retry backoff controls or run background health monitoring. Use `result.metadata.failures` to inspect the search outcome; see [browser settings](/docs/v0.3/wasm/overview#configure-the-client).

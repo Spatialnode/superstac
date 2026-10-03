@@ -8,9 +8,13 @@ Import the public types with `from superstac import Client, AsyncClient`. Both c
 ## Constructors
 
 ```text
-Client(config=None, *, catalogs=None, providers=None, settings=None, storage="memory")
-Client.open(url, *, id=None, storage="memory")
-Client.from_yaml(yaml_path, *, storage="memory")
+Client(config=None, *, catalogs=None, providers=None, settings=None,
+       storage="memory", mode="live", dataset=None,
+       max_snapshot_age_seconds=86400)
+Client.open(url, *, id=None, storage="memory", mode="live",
+            dataset=None, max_snapshot_age_seconds=86400)
+Client.from_yaml(yaml_path, *, storage="memory", mode="live",
+                 dataset=None, max_snapshot_age_seconds=86400)
 ```
 
 `AsyncClient` has the same signatures. Await only `AsyncClient.open(...)`; its constructor and `from_yaml()` are synchronous.
@@ -78,6 +82,36 @@ Pass `collections` explicitly, using `[]` for all collections. See [search param
 `items()`, `matched()`, `to_geojson()`, `item_collection_as_dict()`, `len(search)`, and the `metadata` property are synchronous. See [result fields](/docs/v0.3/reference/results/).
 
 Python returns the STAC item dictionaries without Rust’s `catalog_id` and `seen_in` fields. Use metadata to check failures and counts for the whole search; it does not identify the source of each item.
+
+## Saved GeoParquet inventories
+
+Published Python wheels include these methods. Check a custom build with `from superstac import geoparquet_available`.
+
+| Constructor option | Use |
+| --- | --- |
+| `mode="live"` | Query catalog APIs; the default. |
+| `mode="snapshot", dataset="./data"` | Search saved metadata only. |
+| `mode="auto", dataset="./data"` | Use complete, fresh saved coverage or fall back to the API. |
+| `max_snapshot_age_seconds=86400` | Maximum saved-data age in auto mode; measured from ingestion start. |
+
+```text
+client.ingest(catalog_id, output, *, collections=[], bbox=None,
+              datetime=None, name=None, resume=False,
+              incremental_since=None, page_size=500,
+              items_per_file=10000, max_dataset_mib=1024,
+              timeout_seconds=60, all=False, progress=None)
+client.compact_dataset(dataset, *, items_per_file=10000,
+                       max_dataset_mib=1024)
+client.cleanup_dataset(dataset, *, apply=False)
+```
+
+All three methods return dictionaries. Await them on `AsyncClient`. Ingestion needs collection, spatial, or temporal scope unless you explicitly opt into `all=True`. `page_size` controls provider requests, not the total number of records saved.
+
+`progress` receives a dictionary with fields such as `phase` and `items_saved`. It runs on a worker thread: keep it short and avoid changing notebook or browser widgets directly from it.
+
+Cleanup previews removable files by default; `apply=True` removes unreferenced files. Release snapshot clients before cleanup or compaction. `shutdown()` stops background tasks but keeps the client’s dataset lock until the object is released.
+
+See [the complete inventory workflow](/docs/v0.3/guides/geoparquet#use-python) for ingestion, local search, and cleanup.
 
 ## Errors
 

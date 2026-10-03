@@ -15,7 +15,7 @@ SuperSTAC is a pre-1.0, MIT-licensed project. This documentation targets version
 - Collection discovery and source selection.
 - Concurrent searches with per-catalog caps, retries, and timeouts.
 - Collection/asset aliases and optional response normalization.
-- Item-ID deduplication, failure metadata, and Rust/CLI item provenance.
+- Item-ID deduplication, failure metadata, and JavaScript/Rust/CLI item provenance.
 
 The [browser binding](/docs/v0.3/wasm/overview) supports live catalogs only. GeoParquet, filesystem configuration, background health monitoring, and asset signing are not included.
 
@@ -27,7 +27,7 @@ The [browser binding](/docs/v0.3/wasm/overview) supports live catalogs only. Geo
 - CQL2, field projection, or cloud-cover search options.
 - Full pystac-client API compatibility.
 
-The package searches item metadata; it does not download, mosaic, render, or reproject imagery.
+The search package returns metadata and asset links. The playground adds map previews using separate rendering tools; the package itself does not download or process image pixels.
 
 ## Things to check when using v0.3
 

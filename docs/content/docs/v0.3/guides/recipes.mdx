@@ -1,0 +1,161 @@
+---
+title: Search recipes
+description: Ready-to-adapt searches for a polygon, clearer scenes, item IDs, and asset links.
+---
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+These examples use a public Sentinel-2 collection on Earth Search. [Install SuperSTAC](/docs/v0.3/start/installation) first; no API key is needed for these metadata requests.
+
+## Search a polygon and keep clearer scenes
+
+The example searches a closed GeoJSON polygon, asks for the newest records, and keeps returned scenes with at most 20% cloud cover. It then looks up one of those real item IDs and prints its assets.
+
+Cloud cover is filtered **after** the search. This does not find every low-cloud scene in the catalog: increase the returned limit or adjust the query if the sample is too small. Cloud cover describes the whole scene, not just your polygon.
+
+<Tabs items={["Python", "JavaScript"]}>
+<Tab value="Python">
+
+Save as `clearer-scenes.py` and run `python clearer-scenes.py` (or `uv run clearer-scenes.py`). It writes `clearer-scenes.geojson` to the working directory.
+
+```python
+import json
+from pathlib import Path
+from superstac import Client
+
+area = {
+    "type": "Polygon",
+    "coordinates": [[[6, 45], [7, 45], [7, 46], [6, 46], [6, 45]]],
+}
+client = Client.open("https://earth-search.aws.element84.com/v1")
+try:
+    result = client.search(
+        collections=["sentinel-2-l2a"],
+        intersects=area,
+        datetime="2024-06-01T00:00:00Z/2024-06-30T23:59:59Z",
+        sortby=["-datetime"],
+        limit=20,
+    )
+    # Filter only the records returned by this search.
+    clearer = [
+        item for item in result.items()
+        if isinstance(item["properties"].get("eo:cloud_cover"), (int, float))
+        and item["properties"]["eo:cloud_cover"] <= 20
+    ]
+    Path("clearer-scenes.geojson").write_text(json.dumps({
+        "type": "FeatureCollection",
+        "features": clearer,
+    }, indent=2), encoding="utf-8")
+    print(f"Kept {len(clearer)} of {len(result)} returned records")
+    for failure in result.metadata["failures"]:
+        print("Catalog failed:", failure)
+
+    # Look up a real ID from the results instead of guessing one.
+    if clearer:
+        item = clearer[0]
+        lookup = client.search(
+            collections=[item["collection"]], ids=[item["id"]], limit=1
+        )
+        for found in lookup.items():
+            for name, asset in found.get("assets", {}).items():
+                print(name, asset.get("type"), asset.get("href"))
+        print("Lookup failures:", lookup.metadata["failures"])
+finally:
+    client.shutdown()
+```
+
+</Tab>
+<Tab value="JavaScript">
+
+Run in your app’s browser code after installing the WASM package. The GeoJSON and asset URLs appear in the console. For visible page output, adapt the [browser app example](/docs/v0.3/wasm/overview#put-it-on-a-page).
+
+```js
+import init, { SuperSTAC } from '@spatialnode/superstac-wasm';
+
+await init();
+const client = new SuperSTAC({
+  catalogs: [{
+    id: 'earth-search',
+    url: 'https://earth-search.aws.element84.com/v1',
+  }],
+});
+try {
+  const result = await client.search({
+    collections: ['sentinel-2-l2a'],
+    intersects: {
+      type: 'Polygon',
+      coordinates: [[[6, 45], [7, 45], [7, 46], [6, 46], [6, 45]]],
+    },
+    datetime: '2024-06-01T00:00:00Z/2024-06-30T23:59:59Z',
+    sortby: ['-datetime'],
+    limit: 20,
+  });
+  const clearer = result.items.filter(({ item }) => {
+    const cloud = item.properties['eo:cloud_cover'];
+    return typeof cloud === 'number' && cloud <= 20;
+  });
+  console.log({
+    type: 'FeatureCollection',
+    features: clearer.map(({ item }) => item),
+  });
+  console.warn('Search failures:', result.metadata.failures);
+
+  if (clearer.length) {
+    const { item } = clearer[0];
+    const lookup = await client.search({
+      collections: [item.collection], ids: [item.id], limit: 1,
+    });
+    for (const { item: found } of lookup.items) {
+      for (const [name, asset] of Object.entries(found.assets ?? {})) {
+        console.log(name, asset.type, asset.href);
+      }
+    }
+    console.warn('Lookup failures:', lookup.metadata.failures);
+  }
+} finally {
+  client.free();
+}
+```
+
+</Tab>
+</Tabs>
+
+If the catalog rejects sorting, remove `sortby` and retry. Sorting applies within each catalog; it does not sort a combined response globally. Use `bbox` instead of `intersects` when a rectangle is sufficient.
+
+## Export from the terminal
+
+The CLI uses a bounding box rather than a GeoJSON geometry. Save the [sample configuration](/superstac/versions/v0.3/examples/superstac.yml) as `superstac.yml`. This example also requires [jq](https://jqlang.org/):
+
+```bash
+superstac --json search \
+  --collection sentinel-2-l2a \
+  --bbox=6,45,7,46 \
+  --datetime 2024-06-01T00:00:00Z/2024-06-30T23:59:59Z \
+  --limit 20 > results.json
+
+jq '.metadata.failures' results.json
+jq '{type: "FeatureCollection", features: [.items[].item]}' \
+  results.json > items.geojson
+```
+
+Keep `results.json` if you need provenance and failure metadata. `items.geojson` contains only the STAC items. Logs go to stderr, so redirecting stdout preserves valid JSON.
+
+## Choose the right asset
+
+An item can contain a thumbnail, a rendered preview, GeoTIFF bands, and metadata files. Inspect each asset’s `type`, `roles`, and `href` before opening it.
+
+| You want to… | Look for… |
+| --- | --- |
+| Show a small preview | A PNG, JPEG, or WebP thumbnail or rendered preview |
+| Inspect full-resolution pixels | GeoTIFF or COG assets and a raster reader |
+| Keep a record of the search | Item metadata plus the search failure list |
+| Preview imagery without writing a viewer | The [playground](/docs/v0.3/wasm/playground) |
+
+A GeoTIFF is not a browser thumbnail. Asset access is separate from metadata access: a public item can link to assets that need signing or authentication. SuperSTAC returns those links without signing them.
+
+## More workflows
+
+- [Use the same collection and band names across catalogs](/docs/v0.3/guides/aliases).
+- [Add catalogs and discover available collections](/docs/v0.3/guides/catalogs).
+- [Save metadata and query it locally](/docs/v0.3/guides/geoparquet).
+- [Handle timeouts and partial failures](/docs/v0.3/guides/resilience).

@@ -5,6 +5,8 @@ description: Search multiple STAC APIs from scripts and notebooks with the synch
 
 Use `Client` to search STAC catalogs from a script or notebook. Results and collection documents are ordinary Python dictionaries.
 
+Install with [pip, uv, Poetry, or a Conda environment](/docs/v0.3/start/installation#python).
+
 For an interactive walkthrough, [try the Python notebook in Colab or Jupyter](/docs/v0.3/python/notebook). Search two catalogs, browse the items in a table, map their footprints, and export GeoJSON.
 
 ## Connect to one catalog
@@ -63,3 +65,10 @@ Iterate with `for item in search.items()`. Search collects the results before re
 If you use pystac-client, you will recognize `Client.open()`, `search()`, and `items()`. A few differences matter when switching: items are dictionaries rather than `pystac.Item` objects, and `matched()` counts returned items rather than all matches in the catalog. SuperSTAC does not support pystac-client’s full set of options, modifiers, authentication hooks, or pagination methods.
 
 Use `to_geojson()`, not `as_geojson()`. See the [API reference](/docs/v0.3/python/api/) for supported methods and [async guide](/docs/v0.3/python/async/) for asyncio applications.
+
+## Next steps
+
+- [Search a polygon, filter returned records, and inspect assets](/docs/v0.3/guides/recipes).
+- [Give collections and assets your own names](/docs/v0.3/guides/aliases).
+- [Save metadata and search it locally](/docs/v0.3/guides/geoparquet#use-python).
+- [Use asyncio](/docs/v0.3/python/async) or look up [method signatures](/docs/v0.3/python/api).

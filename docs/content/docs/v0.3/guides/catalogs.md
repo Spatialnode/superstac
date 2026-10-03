@@ -48,7 +48,9 @@ Add the provider first, then pass its ID as `provider` when adding a catalog. Th
 ```python
 from superstac import Client
 
-client = Client.open("https://earth-search.aws.element84.com/v1")
+client = Client.open(
+    "https://earth-search.aws.element84.com/v1", id="earth-search"
+)
 try:
     print(client.list_collections())
     print(client.collections_by_catalog())
@@ -69,3 +71,32 @@ finally:
 If you add catalogs after startup, call `shutdown()` and then `start()` to run startup discovery again. Calling `start()` while already started is a no-op.
 
 Include the existing title and description when updating a catalog if you want to keep them; leaving them out can clear them. Changes are held in memory and disappear when you discard the client. Update your configuration file separately to keep them for the next run.
+
+## Change your catalog list
+
+This complete example adds a catalog, updates its description, searches it, then removes it. Register changes before `start()` or restart discovery afterward.
+
+```python
+from superstac import Client
+
+client = Client()
+try:
+    client.add_catalog({
+        "id": "earth-search",
+        "title": "Earth Search",
+        "url": "https://earth-search.aws.element84.com/v1",
+    })
+    client.update_catalog("earth-search", {
+        "title": "Earth Search",
+        "description": "Imagery for my project",
+    })
+    result = client.search(collections=["sentinel-2-l2a"], limit=1)
+    print(len(result), result.metadata["failures"])
+    client.shutdown()
+    client.delete_catalog("earth-search")
+    print(client.list_catalogs())
+finally:
+    client.shutdown()
+```
+
+The browser binding accepts catalogs in its constructor. To change them, finish pending calls, free the old client, and create a new one. It does not expose the Python registry methods. In the [playground](/docs/v0.3/wasm/playground), **Catalogs → Browse STAC Index** helps you find public APIs, and **Add by URL** accepts your own endpoint.

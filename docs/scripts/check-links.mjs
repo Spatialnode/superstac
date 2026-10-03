@@ -11,7 +11,7 @@ const routes = [base, ...files.filter((f) => /\.mdx?$/.test(f)).map((f) => {
 })];
 const failures = [];
 const resources = new Set([`${base}/favicon.svg`, `${base}/brand/superstac-logo.svg`, `${base}/brand/superstac-logo-dark.svg`, `${base}/examples/superstac.yml`, `${base}/sitemap.xml`]);
-for (const asset of ['playground', 'playground/index.html', 'playground/modules/alias-editor.js', 'playground/modules/stac-index.js', 'playground/modules/activity.js', 'playground/modules/map.js', 'playground/modules/provider-icon.js', 'playground/modules/model.js', 'playground/modules/dom.js', 'playground/modules/catalogs.js', 'playground/modules/results.js', 'playground/modules/viewers.js', 'playground/playground.css', 'playground/playground.js', 'wasm/superstac_wasm.js', 'wasm/superstac_wasm_bg.wasm']) resources.add(`${base}/${asset}`);
+for (const asset of ['playground', 'playground/index.html', 'playground/modules/code-examples.js', 'playground/modules/code-view.js', 'playground/modules/alias-editor.js', 'playground/modules/stac-index.js', 'playground/modules/activity.js', 'playground/modules/map.js', 'playground/modules/provider-icon.js', 'playground/modules/model.js', 'playground/modules/dom.js', 'playground/modules/catalogs.js', 'playground/modules/results.js', 'playground/modules/viewers.js', 'playground/playground.css', 'playground/playground.js', 'wasm/superstac_wasm.js', 'wasm/superstac_wasm_bg.wasm']) resources.add(`${base}/${asset}`);
 const wasmResponse = await fetch(`${origin}${base}/wasm/superstac_wasm_bg.wasm`);
 if (!wasmResponse.ok || !wasmResponse.headers.get('content-type')?.includes('application/wasm')) failures.push('WASM asset is missing or has the wrong content type');
 const documents = new Map();

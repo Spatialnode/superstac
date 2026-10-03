@@ -94,8 +94,10 @@
   <footer class="sr-only">SuperSTAC searches scene metadata. The map uses <a href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer">OpenFreeMap</a>; available assets and access requirements depend on the catalog. <a href="/superstac/docs/wasm/overview">Read the browser guide.</a></footer>
 </main>
 <dialog id="code-dialog" aria-labelledby="code-title">
-  <div class="code-heading"><div><h2 id="code-title">Use this search in your app</h2><p class="hint">JavaScript · your catalogs, filters, and applied settings</p></div><button class="quiet" type="button" data-close="code-dialog" aria-label="Close code example">×</button></div>
-  <pre id="code" tabindex="0" aria-label="JavaScript search example"></pre>
+  <div class="code-heading"><div><h2 id="code-title">Use this search in your app</h2><p class="hint">Your catalogs, filters, and applied settings</p></div><button class="quiet" type="button" data-close="code-dialog" aria-label="Close code example">×</button></div>
+  <div class="code-options"><label>Language<select id="code-language"><option>JavaScript</option><option>Python</option><option>Rust</option><option>CLI</option></select></label><label>File<select id="code-file"></select></label><a id="code-guide" href="/superstac/docs/wasm/overview" target="_blank" rel="noopener noreferrer">Setup guide ↗</a></div>
+  <p id="code-note" class="hint" role="status"></p>
+  <pre id="code" tabindex="0" aria-label="Search example source code"></pre>
   <div class="code-actions"><p id="copy-status" role="status" class="hint">Ready to copy.</p><button id="copy" class="primary" type="button">Copy code</button></div>
 </dialog>
 <dialog id="index-dialog" aria-labelledby="index-title">

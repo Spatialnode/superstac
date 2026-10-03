@@ -90,22 +90,47 @@ the managed dataset’s coverage and freshness guarantees.
 
 ## Use Python
 
+Save this as `inventory.py`. It creates a small inventory, searches it without calling the catalog, and releases both clients when finished. No YAML file is needed.
+
 ```python
 from superstac import Client
 
-client = Client.from_yaml("superstac.yml")
-client.ingest(
-    "earth-search", "./data", name="madrid-feb",
-    collections=["sentinel-2-l2a"], datetime="2025-02-01/2025-03-01",
-    bbox=[-4.5, 39.5, -3, 41],
-    progress=lambda event: print(event["phase"], event["items_saved"]),
-)
-local = Client.from_yaml("superstac.yml", mode="snapshot", dataset="./data")
-results = local.search(
-    collections=["sentinel-2-l2a"], datetime="2025-02-10/2025-02-15",
-    bbox=[-4, 40, -3.5, 40.5], sortby=["-datetime"], limit=20,
-)
+catalogs = [{
+    "id": "earth-search",
+    "url": "https://earth-search.aws.element84.com/v1",
+}]
+client = Client(catalogs=catalogs)
+try:
+    saved = client.ingest(
+        "earth-search", "./data", name="alps-june",
+        collections=["sentinel-2-l2a"],
+        datetime="2024-06-01T00:00:00Z/2024-06-07T23:59:59Z",
+        bbox=[6, 45, 7, 46],
+        max_dataset_mib=128,
+        progress=lambda event: print(event["phase"], event["items_saved"]),
+    )
+    print(saved)
+finally:
+    client.shutdown()
+    del client
+
+local = Client(catalogs=catalogs, mode="snapshot", dataset="./data")
+try:
+    result = local.search(
+        collections=["sentinel-2-l2a"],
+        datetime="2024-06-02T00:00:00Z/2024-06-03T23:59:59Z",
+        bbox=[6.2, 45.2, 6.8, 45.8],
+        sortby=["-datetime"],
+        limit=5,
+    )
+    print(result.matched(), result.metadata["failures"])
+finally:
+    local.shutdown()
+    del local
 ```
+
+Run `python inventory.py` or `uv run inventory.py`. Ingestion downloads metadata pages and writes Parquet files; it is more work than a small live search. Start with the bounded dates and area above.
+
 
 Use `mode="auto"` and `max_snapshot_age_seconds=86400` for live fallback.
 `AsyncClient` supports the same options, with awaitable `ingest`, search, and
@@ -114,6 +139,23 @@ maintenance methods. Constructors and `from_yaml()` remain synchronous.
 Progress callbacks run on a worker thread and should return promptly. Callback
 exceptions are reported without stopping ingestion. See the
 [Python API](/docs/v0.3/python/api) for method signatures.
+
+### Compact and preview cleanup in Python
+
+After releasing the `local` client above, run:
+
+```python
+from superstac import Client
+
+maintenance = Client()
+try:
+    print(maintenance.compact_dataset("./data"))
+    print(maintenance.cleanup_dataset("./data"))
+    # After reviewing the report, opt into deleting unused files:
+    # print(maintenance.cleanup_dataset("./data", apply=True))
+finally:
+    maintenance.shutdown()
+```
 
 ## Update an inventory
 
@@ -166,14 +208,59 @@ clients before applying cleanup; active readers or writers prevent it from runni
 
 ## Rust
 
-Enable the engine’s `geoparquet` feature. Use `ingest_catalog` with `IngestOptions`
-to save data, `SuperSTACEngine::from_dataset` for local search, or
-`SuperSTACEngine::automatic(storage, path, max_age)` for live fallback.
+Use the dependencies from the [Rust guide](/docs/v0.3/rust/overview), with `superstac-engine = { version = "0.3", features = ["geoparquet"] }`. Save the [sample YAML](/superstac/versions/v0.3/examples/superstac.yml) as `superstac.yml` in your project root.
 
-The engine also exports `compact_dataset` and `cleanup_dataset`.
-`IngestOptions::progress` accepts an `Arc<dyn Fn(&IngestProgress) + Send + Sync>`;
-callbacks should return promptly and not panic. Datasets currently use local
-storage, not remote object stores.
+This complete `src/main.rs` saves a small inventory, then queries it locally:
+
+```rust
+use superstac_config::init_from_yaml;
+use superstac_core::models::storage::Storage;
+use superstac_engine::{
+    ingest_catalog, IngestOptions, IngestScope, SuperSTACEngine,
+};
+use superstac_search::query::SearchQuery;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let storage = init_from_yaml(Storage::Memory, "superstac.yml")?;
+    let catalog = storage.get_catalog("earth-search")?;
+    let scope = IngestScope {
+        collections: vec!["sentinel-2-l2a".into()],
+        bbox: Some(vec![6.0, 45.0, 7.0, 46.0].try_into()?),
+        datetime: Some(
+            "2024-06-01T00:00:00Z/2024-06-07T23:59:59Z".into(),
+        ),
+    };
+    let mut options = IngestOptions::new("./data", scope);
+    options.name = Some("alps-june".into());
+    options.max_dataset_bytes = Some(128 * 1024 * 1024);
+    ingest_catalog(&catalog, options).await?;
+
+    let engine = SuperSTACEngine::from_dataset(storage, "./data")?;
+    let result = engine.search(SearchQuery {
+        collections: vec!["sentinel-2-l2a".into()],
+        bbox: Some(vec![6.2, 45.2, 6.8, 45.8].try_into()?),
+        datetime: Some(
+            "2024-06-02T00:00:00Z/2024-06-03T23:59:59Z".into(),
+        ),
+        limit: Some(5),
+        sortby: Some(vec!["-datetime".into()]),
+        ids: None,
+        intersects: None,
+    }).await;
+    engine.shutdown().await;
+    let result = result?;
+    println!("{} items", result.metadata.total_items);
+    for failure in result.metadata.failures {
+        eprintln!("{}: {}", failure.catalog_id, failure.reason);
+    }
+    Ok(())
+}
+```
+
+For live fallback, replace `from_dataset` with `SuperSTACEngine::automatic(storage, "./data", std::time::Duration::from_secs(86400))`; this constructor does not return a `Result`.
+
+The engine also exports `compact_dataset` and `cleanup_dataset`. Drop snapshot engines before maintenance to release their dataset locks. Datasets use local storage rather than remote object stores.
 
 ## Performance and version information
 

@@ -1,5 +1,6 @@
 import { $, el, button, errorMessage } from './modules/dom.js';
-import { defaults, DEFAULT_SETTINGS, AREAS, configFor, queryFor, example } from './modules/model.js';
+import { defaults, DEFAULT_SETTINGS, AREAS, configFor, queryFor } from './modules/model.js';
+import { codeView } from './modules/code-view.js';
 import { catalogDirectory } from './modules/stac-index.js';
 import { catalogEditor } from './modules/catalogs.js';
 import { resultView } from './modules/results.js';
@@ -7,6 +8,7 @@ import { activityMonitor } from './modules/activity.js';
 import { overviewMap } from './modules/map.js';
 
 let state = defaults(), busy = false, wasm;
+const code = codeView();
 const activity = activityMonitor(() => catalogs.render());
 const overview = overviewMap(bbox => {
   if (busy) return;
@@ -21,8 +23,8 @@ function values() {
   return { ...Object.fromEntries(['collections', 'area', 'from', 'to', 'limit', 'ids', 'sortby', 'geometry'].map(id => [id, $(id).value])), bbox: ['west', 'south', 'east', 'north'].map(id => $(id).value) };
 }
 function updateCode() {
-  try { const query = queryFor(values()); overview.query(query); $('code').textContent = example(configFor(state), query); $('copy').disabled = false; }
-  catch (error) { $('code').textContent = errorMessage(error); $('copy').disabled = true; }
+  try { const query = queryFor(values()); overview.query(query); code.update(configFor(state), query); }
+  catch (error) { code.error(errorMessage(error)); }
   $('copy-status').textContent = '';
   $('bbox-fields').hidden = $('area').value !== 'custom';
   const selected = state.catalogs.filter(c => c.enabled);
@@ -204,14 +206,6 @@ $('reset').addEventListener('click', () => {
 });
 $('open-code').addEventListener('click', () => {
   updateCode(); $('code-dialog').showModal(); $('copy').focus();
-});
-$('copy').addEventListener('click', async () => {
-  try { await navigator.clipboard.writeText($('code').textContent); $('copy-status').textContent = 'Code copied.'; }
-  catch {
-    const range = document.createRange(); range.selectNodeContents($('code'));
-    const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
-    $('code').focus(); $('copy-status').textContent = 'Code selected. Press Ctrl+C or ⌘C to copy.';
-  }
 });
 let theme;
 try { theme = localStorage.getItem('superstac-playground-theme'); } catch { /* Storage may be unavailable. */ }

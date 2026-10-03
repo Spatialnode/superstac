@@ -52,7 +52,7 @@ export default function Home() {
           <h1 id="home-title">Many catalogs.<br />One search.</h1>
           <p>Search satellite imagery across STAC catalogs.<br className={styles.desktopBreak} /> Get combined results, with a source for every scene.</p>
           <div className={styles.actions}>
-            <a href="/superstac/playground" className={styles.primary}>Open playground <ArrowRight size={16} aria-hidden="true" /></a>
+            <a href="/superstac/playground" className={styles.primary}>Try it now <ArrowRight size={16} aria-hidden="true" /></a>
             <Link href="/docs/start/quickstart" className={styles.secondary}>Get started</Link>
           </div>
           <p className={styles.heroNote}>Open source. Built in Rust. Use it from Python, JavaScript, Rust, or the CLI.</p>

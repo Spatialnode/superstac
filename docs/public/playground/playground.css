@@ -360,3 +360,23 @@ body[data-controls=open] .map-tools { left: 358px; }
 .scene-body h3 { font-size: 15px; }
 .scene-body>.hint, .scene-actions, .result-overlay-bar, .result-overlay-bar button { font-size: 12px; }
 .scene-actions .primary { padding: 10px 12px; font-size: 13px; }
+
+.code-options { display: flex; align-items: end; gap: 16px; padding: 14px 24px 8px; flex-shrink: 0; }
+.code-options label { margin: 0; flex: 1; font-size: 12px; }
+.code-options select { font-size: 14px; }
+.code-options a { font-size: 12px; padding-bottom: 8px; }
+#code-note { padding: 0 24px; margin: 4px 0 12px; font-size: 12px; flex-shrink: 0; }
+#code .token-comment { color: #596579; }
+#code .token-string { color: #146039; }
+#code .token-keyword { color: #7b278a; font-weight: 550; }
+#code .token-number { color: #0756a0; }
+[data-theme=dark] #code .token-comment { color: #9da9b9; }
+[data-theme=dark] #code .token-string { color: #a6dfb5; }
+[data-theme=dark] #code .token-keyword { color: #d5b3ff; }
+[data-theme=dark] #code .token-number { color: #94c8ff; }
+@media (max-width: 540px) {
+  .code-options { padding: 12px 16px 8px; flex-wrap: wrap; gap: 10px; }
+  .code-options a { width: 100%; padding: 0; }
+  #code-note { padding-inline: 16px; }
+  #copy { padding: 10px 12px; font-size: 12px; }
+}
