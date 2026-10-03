@@ -8,6 +8,7 @@ members = [
     "crates/cli",
     "crates/python", 
     "crates/geoparquet",
+    "crates/wasm",
 ]
 
 [workspace.package]

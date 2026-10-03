@@ -17,12 +17,21 @@ authors.workspace = true
 superstac-core = { path = "../core", version = "0.3.0" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
-tokio = { version = "1", features = ["time"] }
 futures = "0.3"
-stac = "0.16"
-stac-io = "0.2"
-reqwest = { version = "0.13", default-features = false }
+reqwest = { version = "0.13", default-features = false, features = ["json"] }
 tracing = "0.1"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { version = "1", features = ["time"] }
+stac-io = "0.2"
+stac = "0.16"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+# 0.17.0 gates filesystem APIs; later releases conflict with native geo dependencies.
+stac = { version = "=0.17.0", default-features = false }
+getrandom = { version = "0.3", features = ["wasm_js"] }
+getrandom02 = { package = "getrandom", version = "0.2", features = ["js"] }
+gloo-timers = { version = "0.3", features = ["futures"] }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt", "macros"] }

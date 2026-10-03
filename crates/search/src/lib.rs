@@ -20,3 +20,7 @@ pub mod unifier;
 
 pub mod backend;
 pub mod stac_api;
+
+pub mod runtime;
+#[cfg(target_arch = "wasm32")]
+pub mod browser;

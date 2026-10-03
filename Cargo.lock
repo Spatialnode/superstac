@@ -648,7 +648,7 @@ checksum = "74b72642b4c3243fb843c3beb0ec9d0406eecfaa7e01d172e7cdfa437605c884"
 dependencies = [
  "geo 0.31.0",
  "geo-types",
- "geojson",
+ "geojson 0.24.2",
  "geozero",
  "jiff",
  "json_dotpath",
@@ -1187,6 +1187,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "geojson"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "510c094bfc76ea34d02eee00833254945b70491d79a9c0b050abed6eaa799ffb"
+dependencies = [
+ "geo-types",
+ "log",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tinyvec",
+]
+
+[[package]]
 name = "geoparquet"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1216,7 +1230,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5f28f34864745eb2f123c990c6ffd92c1584bd39439b3f27ff2a0f4ea5b309b"
 dependencies = [
  "geo-types",
- "geojson",
+ "geojson 0.24.2",
  "log",
  "serde_json",
  "thiserror 1.0.69",
@@ -1247,6 +1261,18 @@ dependencies = [
  "libc",
  "r-efi",
  "wasip2",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "gloo-timers"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbb143cf96099802033e0d4f4963b19fd2e0b728bcf076cd9cf7f6634f092994"
+dependencies = [
+ "futures-channel",
+ "futures-core",
+ "js-sys",
  "wasm-bindgen",
 ]
 
@@ -3139,6 +3165,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde-wasm-bindgen"
+version = "0.6.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8302e169f0eddcc139c70f139d19d6467353af16f9fce27e8c30158036a1e16b"
+dependencies = [
+ "js-sys",
+ "serde",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "serde_core"
 version = "1.0.228"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3356,7 +3393,7 @@ dependencies = [
  "geo-types",
  "geoarrow-array",
  "geoarrow-schema",
- "geojson",
+ "geojson 0.24.2",
  "geoparquet",
  "indexmap 2.13.0",
  "log",
@@ -3370,6 +3407,28 @@ dependencies = [
  "tracing",
  "url",
  "wkb",
+]
+
+[[package]]
+name = "stac"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a069e4454aec3e4cf9340d2b2b242764086e23c452f1ff3deff29b30b2bf0b60"
+dependencies = [
+ "bytes",
+ "chrono",
+ "cql2",
+ "geojson 1.0.0",
+ "indexmap 2.13.0",
+ "log",
+ "mime",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+ "stac-derive",
+ "thiserror 2.0.18",
+ "tracing",
+ "url",
 ]
 
 [[package]]
@@ -3395,7 +3454,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
- "stac",
+ "stac 0.16.3",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
@@ -3434,7 +3493,7 @@ dependencies = [
  "clap",
  "serde",
  "serde_json",
- "stac",
+ "stac 0.16.3",
  "superstac-config",
  "superstac-core",
  "superstac-engine",
@@ -3474,7 +3533,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
- "stac",
+ "stac 0.16.3",
  "stac-io",
  "superstac-core",
  "superstac-geoparquet",
@@ -3498,7 +3557,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "stac",
+ "stac 0.16.3",
  "superstac-core",
  "superstac-search",
  "tempfile",
@@ -3529,14 +3588,33 @@ name = "superstac-search"
 version = "0.3.0"
 dependencies = [
  "futures",
+ "getrandom 0.2.17",
+ "getrandom 0.3.4",
+ "gloo-timers",
  "reqwest",
  "serde",
  "serde_json",
- "stac",
+ "stac 0.16.3",
+ "stac 0.17.0",
  "stac-io",
  "superstac-core",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "superstac-wasm"
+version = "0.3.0"
+dependencies = [
+ "futures",
+ "reqwest",
+ "serde",
+ "serde-wasm-bindgen",
+ "serde_json",
+ "superstac-core",
+ "superstac-search",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
 ]
 
 [[package]]
@@ -3725,6 +3803,7 @@ version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bfa5fdc3bce6191a1dbc8c02d5c8bffcf557bafa17c124c5264a458f1b0613fa"
 dependencies = [
+ "serde",
  "tinyvec_macros",
 ]
 

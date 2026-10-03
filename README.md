@@ -114,6 +114,12 @@ Run `superstac --help` for the full surface. For saved metadata inventories, bui
 with `--features geoparquet` and follow the [GeoParquet guide](crates/geoparquet/README.md).
 Published Python wheels include this backend.
 
+## Browser / WebAssembly
+
+Build the browser binding to search live STAC catalogs from JavaScript or TypeScript.
+See the [WASM guide](crates/wasm/README.md) for build instructions, API usage,
+a browser example, and browser-specific limitations.
+
 ## Configuration
 
 Only `id` and `url` are required per catalog. Common optional fields:

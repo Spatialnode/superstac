@@ -1,5 +1,18 @@
 //! Search contracts shared by remote and file-backed implementations.
-use futures::future::BoxFuture;
+/// Futures run on the browser event loop on WASM; native backends remain Send.
+#[cfg(not(target_arch = "wasm32"))]
+pub type SearchFuture<'a, T> = futures::future::BoxFuture<'a, T>;
+#[cfg(target_arch = "wasm32")]
+pub type SearchFuture<'a, T> = futures::future::LocalBoxFuture<'a, T>;
+
+#[cfg(not(target_arch = "wasm32"))]
+pub trait BackendBounds: Send + Sync {}
+#[cfg(not(target_arch = "wasm32"))]
+impl<T: Send + Sync + ?Sized> BackendBounds for T {}
+#[cfg(target_arch = "wasm32")]
+pub trait BackendBounds {}
+#[cfg(target_arch = "wasm32")]
+impl<T: ?Sized> BackendBounds for T {}
 use superstac_core::{errors::SuperSTACError, models::catalog::Catalog};
 
 use crate::{query::SearchQuery, response::SearchItem};
@@ -21,13 +34,13 @@ pub struct BackendSearchOptions {
 /// Dataset locations can be held by the backend; `Catalog::url` is only an API
 /// endpoint for the STAC backend. This interface does not perform health checks
 /// or ingestion. Boxed futures allow runtime selection via `dyn SearchBackend`.
-pub trait SearchBackend: Send + Sync {
+pub trait SearchBackend: BackendBounds {
     fn search<'a>(
         &'a self,
         catalog: &'a Catalog,
         query: SearchQuery,
         options: BackendSearchOptions,
-    ) -> BoxFuture<'a, Result<Vec<SearchItem>, SuperSTACError>>;
+    ) -> SearchFuture<'a, Result<Vec<SearchItem>, SuperSTACError>>;
 }
 
 impl<T: SearchBackend + ?Sized> SearchBackend for std::sync::Arc<T> {
@@ -36,7 +49,7 @@ impl<T: SearchBackend + ?Sized> SearchBackend for std::sync::Arc<T> {
         catalog: &'a Catalog,
         query: SearchQuery,
         options: BackendSearchOptions,
-    ) -> BoxFuture<'a, Result<Vec<SearchItem>, SuperSTACError>> {
+    ) -> SearchFuture<'a, Result<Vec<SearchItem>, SuperSTACError>> {
         (**self).search(catalog, query, options)
     }
 }

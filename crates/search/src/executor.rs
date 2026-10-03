@@ -1,6 +1,6 @@
 use futures::StreamExt;
 use superstac_core::{errors::SuperSTACError, models::catalog::Catalog};
-use tokio::time::{sleep, timeout};
+use crate::runtime::{sleep, timeout};
 
 use crate::{
     aggregator::SearchAggregator,

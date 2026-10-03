@@ -26,6 +26,31 @@ jobs:
       - run: cargo test -p superstac-cli -p superstac-engine --features geoparquet --locked
       - run: cargo check -p superstac-python --no-default-features --locked
 
+  wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: '1.88.0'
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: crates/wasm/package-lock.json
+      - run: cargo install wasm-pack --version 0.13.1 --locked
+      - run: wasm-pack build crates/wasm --target web --release --locked
+      - run: npm ci
+        working-directory: crates/wasm
+      - run: npx playwright install --with-deps chromium
+        working-directory: crates/wasm
+      - run: npm test
+        working-directory: crates/wasm
+      - run: npx tsc --noEmit --strict --target ES2022 --module ESNext --moduleResolution bundler tests/types.ts
+        working-directory: crates/wasm
+
   wheels:
     name: Wheel (${{ matrix.target }})
     runs-on: ${{ matrix.runner }}
