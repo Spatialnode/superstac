@@ -64,7 +64,7 @@ $('workspace-controls').addEventListener('keydown', event => {
 });
 document.addEventListener('playground:preview', () => controlsPanel(false));
 document.addEventListener('playground:results-open', () => {
-  if (matchMedia('(max-width: 900px)').matches) controlsPanel(false);
+  controlsPanel(false);
 });
 const tabs = [...document.querySelectorAll('[data-tab]')];
 tabs.forEach((b, i) => {
@@ -95,14 +95,15 @@ $('search-form').addEventListener('submit', async event => {
   const snapshot = { unify: state.settings.unify_response, catalogs: structuredClone(state.catalogs), query, areaName: query.intersects ? 'Custom geometry' : AREAS[$('area').value]?.name ?? ($('area').value === 'custom' ? 'Custom area' : 'Anywhere') };
   activity.begin('Search', snapshot.catalogs.filter(c => c.enabled));
   controlsPanel(false); $('toggle-controls').focus({ preventScroll: true });
-  lock(true); $('search-button').textContent = 'Searching…'; $('status').textContent = 'Searching your selected catalogs…';
+  lock(true); $('search-button').textContent = 'Searching…'; $('toggle-controls').textContent = 'Searching…'; $('status').textContent = 'Searching your selected catalogs…';
   let client;
   try {
     client = await clientFor(config); const response = await client.search(query); results.render(response, snapshot); activity.outcome(response, snapshot.catalogs.filter(c => c.enabled));
+    $('toggle-results').focus({ preventScroll: true });
     activity.finish(`${response.items.length} scenes · ${response.metadata.catalogs_failed} catalogs failed`, response.metadata.catalogs_failed > 0);
     $('status').textContent = response.metadata.catalogs_succeeded === 0 ? 'No catalogs could complete this search. See the details below.' : response.metadata.catalogs_failed ? 'Search finished. Some catalogs could not return results; see the details below.' : 'Search finished.';
   } catch (error) { activity.finish('Search could not complete. See the status message.', true); $('status').textContent = `The search could not finish. ${errorMessage(error)}`; }
-  finally { client?.free(); lock(false); $('search-button').textContent = 'Search scenes →'; }
+  finally { client?.free(); lock(false); $('search-button').textContent = 'Search scenes →'; $('toggle-controls').textContent = 'Find imagery'; }
 });
 $('discover').addEventListener('click', async () => {
   if (busy) return; let client, config;
@@ -147,7 +148,7 @@ $('try-aerial').addEventListener('click', () => {
   }
   catalog.enabled = true;
   $('search-form').reset(); $('collections').value = ''; $('area').value = 'anywhere';
-  $('from').value = ''; $('to').value = ''; $('limit').value = '1';
+  $('from').value = ''; $('to').value = ''; $('sortby').value = ''; $('limit').value = '1';
   $('ids').value = '65cdcbd8-34f8-42d3-a758-1ebb69d3b149';
   changed(); tab('search', true);
   $('status').textContent = 'Aerial example ready. Search, then choose Preview on map to explore the GeoTIFF.';

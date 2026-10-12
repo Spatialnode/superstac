@@ -8,12 +8,12 @@
 <link rel="stylesheet" href="/superstac/playground/playground.css">
 <script type="module" src="/superstac/playground/playground.js"></script>
 </head>
-<body>
+<body data-controls="open">
 <header class="topbar"><a class="brand" href="/superstac"><img class="logo-light" src="/superstac/brand/superstac-logo.svg" alt="SuperSTAC"><img class="logo-dark" src="/superstac/brand/superstac-logo-dark.svg" alt="SuperSTAC"><span>Playground</span></a><nav aria-label="Main"><a href="/superstac/docs/wasm/overview">Documentation ↗</a><button id="theme" class="quiet" type="button" aria-label="Switch color theme">◐ Theme</button></nav></header>
 <main>
-  <div class="intro"><div class="sr-only"><h1>Explore satellite imagery</h1><p>One search across your catalogs.</p></div><div class="toolbar"><button id="toggle-controls" class="primary" type="button" aria-expanded="false" aria-controls="workspace-controls">Find imagery</button></div></div>
+  <div class="intro"><div class="workspace-title"><h1>Explore imagery</h1><p>Choose an area. Find a scene. Preview it on the map.</p></div><div class="toolbar"><button id="toggle-controls" class="primary" type="button" aria-expanded="true" aria-controls="workspace-controls">Find imagery</button></div></div>
   <div class="workspace">
-    <aside class="controls-overlay" id="workspace-controls" aria-label="Search, catalogs and settings" hidden>
+    <aside class="controls-overlay" id="workspace-controls" aria-label="Search, catalogs and settings">
       <div class="controls-heading"><strong>Find imagery</strong><div class="toolbar"><button id="open-code" class="secondary" type="button" aria-haspopup="dialog">View code</button><button id="close-controls" class="quiet" type="button" aria-label="Close search panel">×</button></div></div>
       <div class="tabs" role="tablist" aria-label="Workspace controls">
         <button role="tab" id="tab-search" aria-controls="panel-search" aria-selected="true" data-tab="search">Search</button>
@@ -22,18 +22,21 @@
       </div>
       <div class="controls-body">
       <section role="tabpanel" id="panel-search" aria-labelledby="tab-search">
-        <details class="alias-demo"><summary>Start with an aerial example</summary><p>Explore an OpenAerialMap scene in Espoo, Finland. Preview its GeoTIFF directly on the map.</p><button id="try-aerial" type="button" class="secondary">Use aerial imagery example</button><p class="hint">Selects HOT OpenAerialMap for this search. Your other catalogs are kept.</p></details>
-        <div class="sources-heading"><span>Selected catalogs</span><button id="manage-catalogs" class="quiet" type="button">Change</button></div><div id="active-catalogs"></div>
         <form id="search-form"><fieldset id="query-controls"><legend class="sr-only">Search filters</legend>
-          <div class="field-heading"><span>Imagery collection</span><button id="browse-collections" class="quiet" type="button">Browse collections</button></div><label><span class="sr-only">Collection IDs</span><input id="collections" value="sentinel-2-l2a" list="collection-suggestions" placeholder="All collections"><datalist id="collection-suggestions"><option value="sentinel-2-l2a"><option value="landsat-c2-l2"></datalist></label><p class="hint">A collection is a set of imagery, such as Sentinel-2. Browse your catalogs or enter IDs separated by commas.</p>
+          <div class="field-heading"><span>Imagery collection</span><button id="browse-collections" class="quiet" type="button">Browse collections</button></div><label><span class="sr-only">Collection IDs</span><input id="collections" value="sentinel-2-l2a" list="collection-suggestions" placeholder="All collections"><datalist id="collection-suggestions"><option value="sentinel-2-l2a"><option value="landsat-c2-l2"></datalist></label><p class="hint">Sentinel-2 optical imagery is ready to search. Browse for other collections.</p>
           <label>Area<select id="area"><option value="alps">French Alps</option><option value="barcelona">Barcelona coast</option><option value="nairobi">Nairobi</option><option value="custom">Custom bounding box</option><option value="anywhere">Anywhere</option></select></label>
           <div class="area-actions"><button id="use-map-area" class="secondary" type="button" disabled>Use visible map area</button><button id="fit-map" class="quiet" type="button" disabled>Show selected area</button></div><p class="hint">Choose an area and dates, then search below.</p>
           <div id="bbox-fields" class="two-col" hidden><label>West<input id="west" type="number" step="any" value="6" min="-180" max="180"></label><label>South<input id="south" type="number" step="any" value="45" min="-90" max="90"></label><label>East<input id="east" type="number" step="any" value="7" min="-180" max="180"></label><label>North<input id="north" type="number" step="any" value="46" min="-90" max="90"></label></div>
-          <div class="two-col"><label>From<input id="from" type="date" value="2024-06-01"></label><label>To<input id="to" type="date" value="2024-06-30"></label></div>
+          <div class="two-col"><label>From<input id="from" type="date" value="2025-07-01"></label><label>To<input id="to" type="date" value="2025-08-31"></label></div>
+          <p class="hint">July–August 2025 has low-cloud scenes over the French Alps. Least cloudy first; change the order in More filters.</p>
           <label>Scenes per catalog<input id="limit" type="number" value="5" min="1" max="500" required></label>
-          <details><summary>More filters</summary><label>Scene IDs<textarea id="ids" rows="2" placeholder="Optional; separate IDs with commas"></textarea></label><label>Sort by<input id="sortby" placeholder="e.g. -datetime"><span class="hint">A minus sign means descending. Sorting applies within each catalog.</span></label><label>Intersecting geometry<textarea id="geometry" rows="4" placeholder='{"type":"Polygon","coordinates":[…]}'></textarea><span class="hint">Optional GeoJSON geometry. When set, it replaces the area above.</span></label></details>
+          <details><summary>More filters</summary><label>Sort by<input id="sortby" value="properties.eo:cloud_cover" list="sort-suggestions" placeholder="Catalog default"><datalist id="sort-suggestions"><option value="properties.eo:cloud_cover" label="Least cloudy first"><option value="-datetime" label="Newest first"></datalist><span class="hint">Least cloudy first by default. Use -datetime for newest first, or clear for catalog order. Support varies by catalog.</span></label><label>Scene IDs<textarea id="ids" rows="2" placeholder="Optional; separate IDs with commas"></textarea></label><label>Intersecting geometry<textarea id="geometry" rows="4" placeholder='{"type":"Polygon","coordinates":[…]}'></textarea><span class="hint">Optional GeoJSON geometry. When set, it replaces the area above.</span></label></details>
 
         </fieldset></form>
+        <details class="search-sources"><summary>Selected catalogs</summary>
+        <div class="sources-heading"><span>Selected catalogs</span><button id="manage-catalogs" class="quiet" type="button">Change</button></div><div id="active-catalogs"></div>
+        </details>
+        <details class="alias-demo"><summary>Start with an aerial example</summary><p>Explore an OpenAerialMap scene in Espoo, Finland. Preview its GeoTIFF directly on the map.</p><button id="try-aerial" type="button" class="secondary">Use aerial imagery example</button><p class="hint">Selects HOT OpenAerialMap for this search. Your other catalogs are kept.</p></details>
       </section>
       <section role="tabpanel" id="panel-catalogs" aria-labelledby="tab-catalogs" hidden>
         <h2>Catalogs & providers</h2><p class="hint">Turn catalogs on or off for the next search. Providers help keep your catalogs organized.</p>
@@ -71,7 +74,7 @@
       </div>
     </aside>
     <section id="results" class="results" aria-label="Search results" aria-busy="false">
-      <div class="statusbar"><div id="status" role="status" aria-live="polite">Start with Find imagery to choose an area and dates.</div><div class="toolbar"><span id="operation-time" class="hint"></span><button id="open-activity" class="quiet" type="button" aria-expanded="false" aria-controls="activity-panel">Activity <span id="activity-count">0</span></button></div></div>
+      <div class="statusbar"><div id="status" role="status" aria-live="polite">Ready: French Alps · summer 2025. Select Search scenes to see imagery.</div><div class="toolbar"><span id="operation-time" class="hint"></span><button id="open-activity" class="quiet" type="button" aria-expanded="false" aria-controls="activity-panel">Activity <span id="activity-count">0</span></button></div></div>
       <div id="viewer" class="viewer">
         <div class="viewer-toolbar"><div><h2 id="viewer-title">Search area</h2><p id="viewer-caption" class="hint">Move the map to explore. Search to see scene footprints and imagery.</p></div><button id="close-map" class="quiet" type="button" hidden>Back to results</button></div>
         <div id="map-placeholder" class="map-placeholder"><div id="overview-map" aria-label="Map of search area and scene footprints"></div><div id="map-fallback"><h3>Your search area</h3><p id="map-message">Loading map… You can search while it loads.</p><button id="retry-map" class="secondary" type="button" hidden>Retry map</button></div><div class="map-tools"><span id="map-legend">Blue outline · search area</span></div></div>
