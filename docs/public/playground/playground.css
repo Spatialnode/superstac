@@ -272,9 +272,9 @@ main { position: relative; height: calc(100dvh - 58px); padding: 0; overflow: hi
 .controls-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; padding-top: 12px; }
 .statusbar { position: absolute; z-index: 3; bottom: 30px; left: 14px; max-width: calc(100% - 28px); margin: 0; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); box-shadow: var(--shadow); }
 #status { max-width: 480px; max-height: 48px; overflow-y: auto; }
-.viewer-toolbar { top: 72px; left: 14px; max-width: min(360px, calc(100% - 80px)); }
+.viewer-toolbar { top: 88px; left: 14px; max-width: min(360px, calc(100% - 80px)); }
 .viewer:not(:has(#preview-controls:not([hidden]))) .viewer-toolbar { display: none; }
-#preview-controls { top: 160px; left: 14px; }
+#preview-controls { top: 176px; left: 14px; }
 body[data-controls=open] .viewer-toolbar, body[data-controls=open] #preview-controls { visibility: hidden; }
 .map-tools, .viewer:has(#preview-controls:not([hidden])) .map-tools { bottom: 88px; left: 14px; right: 14px; }
 body[data-controls=open] .map-tools { right: 490px; }
@@ -304,8 +304,8 @@ body[data-controls=open] .map-tools { right: 490px; }
   #status { font-size: 10px; max-height: 45px; }
   .map-tools, .viewer:has(#preview-controls:not([hidden])) .map-tools, body[data-controls=open] .map-tools { bottom: 100px; left: 10px; right: 10px; }
   #map-legend { display: none; }
-  .viewer-toolbar { top: 64px; left: 10px; }
-  #preview-controls { top: 155px; left: 10px; }
+  .viewer-toolbar { top: 80px; left: 10px; }
+  #preview-controls { top: 171px; left: 10px; }
   .activity-panel { position: absolute; top: 64px; bottom: 100px; right: 10px; width: calc(100% - 20px); }
 }
 
