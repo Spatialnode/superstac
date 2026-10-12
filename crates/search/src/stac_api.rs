@@ -1,10 +1,11 @@
 //! Item retrieval from a STAC API, including pagination.
-use futures::{future::BoxFuture, StreamExt, TryStreamExt};
+#[cfg(not(target_arch = "wasm32"))]
+use futures::{StreamExt, TryStreamExt};
 use stac::Item;
 use superstac_core::{errors::SuperSTACError, models::catalog::Catalog};
 
 use crate::{
-    backend::{BackendSearchOptions, SearchBackend},
+    backend::{BackendSearchOptions, SearchBackend, SearchFuture},
     query::SearchQuery,
     response::SearchItem,
     translator::to_stac_search,
@@ -44,22 +45,32 @@ impl StacApiBackend {
 
         let search = to_stac_search(query);
 
-        let stac_client = stac_io::api::Client::with_client(self.client.clone(), &catalog.url)
-            .map_err(|e| SuperSTACError::SearchFailed(format!("stac client init: {}", e)))?;
+        if cap == 0 {
+            return Ok(Vec::new());
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        let raw_items: Vec<stac::api::Item> = {
+            let stac_client = stac_io::api::Client::with_client(self.client.clone(), &catalog.url)
+                .map_err(|e| SuperSTACError::SearchFailed(format!("stac client init: {}", e)))?;
 
-        let stream = stac_client
-            .search(search)
-            .await
-            .map_err(|e| SuperSTACError::SearchFailed(format!("search request: {}", e)))?;
+            let stream = stac_client
+                .search(search)
+                .await
+                .map_err(|e| SuperSTACError::SearchFailed(format!("search request: {}", e)))?;
 
-        // Stream of `stac::api::Item` (= `serde_json::Map<String, Value>`),
-        // paginated internally by stac-io. `take(cap)` bounds the total;
-        // `try_collect` short-circuits on first per-item stream error.
-        let raw_items: Vec<stac::api::Item> = stream
-            .take(cap)
-            .try_collect()
-            .await
-            .map_err(|e| SuperSTACError::SearchFailed(format!("stream item: {}", e)))?;
+            // Stream of `stac::api::Item` (= `serde_json::Map<String, Value>`),
+            // paginated internally by stac-io. `take(cap)` bounds the total;
+            // `try_collect` short-circuits on first per-item stream error.
+            let raw_items: Vec<stac::api::Item> = stream
+                .take(cap)
+                .try_collect()
+                .await
+                .map_err(|e| SuperSTACError::SearchFailed(format!("stream item: {}", e)))?;
+
+            raw_items
+        };
+        #[cfg(target_arch = "wasm32")]
+        let raw_items = crate::browser::search(&self.client, &catalog.url, &search, cap).await?;
 
         let items: Vec<SearchItem> = raw_items
             .into_iter()
@@ -89,7 +100,7 @@ impl SearchBackend for StacApiBackend {
         catalog: &'a Catalog,
         query: SearchQuery,
         options: BackendSearchOptions,
-    ) -> BoxFuture<'a, Result<Vec<SearchItem>, SuperSTACError>> {
+    ) -> SearchFuture<'a, Result<Vec<SearchItem>, SuperSTACError>> {
         Box::pin(self.search_catalog(catalog, query, options))
     }
 }

@@ -7,14 +7,16 @@
     "node": ">=22.19.0"
   },
   "scripts": {
-    "dev": "next dev --hostname 127.0.0.1",
+    "dev": "next dev --webpack --hostname 127.0.0.1",
     "build": "next build --webpack",
     "check": "node scripts/check-node.mjs && fumadocs-mdx && tsc --noEmit",
     "start": "next start --hostname 0.0.0.0",
     "postinstall": "node scripts/check-node.mjs && fumadocs-mdx",
     "test:links": "node scripts/check-links.mjs",
+    "test:examples": "node scripts/check-code-examples.mjs",
     "predev": "node scripts/check-node.mjs && node scripts/sync-assets.mjs",
-    "prebuild": "node scripts/check-node.mjs && node scripts/sync-assets.mjs"
+    "prebuild": "node scripts/check-node.mjs && node scripts/sync-assets.mjs",
+    "prepare:wasm": "node scripts/prepare-wasm.mjs"
   },
   "dependencies": {
     "@tailwindcss/postcss": "4.3.3",
@@ -34,5 +36,6 @@
     "@types/react-dom": "^19.0.0",
     "typescript": "^5.9.0",
     "vite": "8"
-  }
+  },
+  "packageManager": "pnpm@9.8.0"
 }

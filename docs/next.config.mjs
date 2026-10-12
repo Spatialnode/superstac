@@ -7,6 +7,9 @@ export default withMDX({
   basePath: '/superstac',
   output: 'standalone',
   reactStrictMode: true,
+  async rewrites() {
+    return [{ source: '/playground', destination: '/playground/index.html' }];
+  },
   async redirects() {
     // Temporary redirects let existing bookmarks follow the latest release.
     const files = readdirSync(new URL(`./content/docs/${latest}/`, import.meta.url), { recursive: true });

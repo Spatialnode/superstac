@@ -44,6 +44,14 @@ Use `--json` for machine-readable output. CLI logs and ingestion progress go to 
 
 Use Python 3.9+ and ensure the package is installed in the interpreter you are running. Check `python -m pip show superstac`. If a compatible wheel is unavailable, follow the [source build instructions](/docs/v0.3/start/installation/).
 
+## A browser search fails but the URL opens in a tab
+
+A catalog can allow navigation while blocking requests from another website. Inspect the failed request in Developer Tools → Network. The API must allow your app’s origin through CORS, including POST searches. SuperSTAC cannot change a catalog’s CORS policy; use a catalog that supports browser access or a proxy you control.
+
+## The WASM module does not load
+
+Check the `.wasm` request in Developer Tools. Serve it over HTTP(S), ensure it returns the binary rather than an HTML page, and follow your bundler’s asset-URL rules. The [complete browser example](/docs/v0.3/wasm/overview#put-it-on-a-page) shows an explicit URL with Vite.
+
 ## Report a problem
 
 Include the package version or commit, Python/Rust version, operating system, a minimal configuration without credentials, the query, and failure metadata. Open an issue on [GitHub](https://github.com/spatialnode/superstac/issues).
@@ -57,7 +65,7 @@ python -c "import superstac; print(superstac.__version__)"
 
 Rust applications can report `superstac_engine::VERSION`. Search response metadata
 includes `superstac_version`, including searches with per-catalog failures.
-Provider requests use `User-Agent: superstac/<version>`. This identifies the
+Native provider requests use `User-Agent: superstac/<version>`. Browser requests keep the browser’s User-Agent. This identifies the
 library, not an individual user, and does not send telemetry to SuperSTAC.
 
 Newly ingested or compacted Parquet files record `created_by` and a JSON

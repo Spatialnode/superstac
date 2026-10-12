@@ -97,6 +97,15 @@ Run `superstac --help` for commands and options. The
 [configuration reference](https://spatialnode.com/superstac/docs/reference/configuration)
 explains aliases, timeouts, and retries.
 
+## Browser / WebAssembly
+
+Build the browser binding to search live STAC catalogs from JavaScript or TypeScript.
+See the [WASM guide](crates/wasm/README.md) for build instructions, API usage,
+a browser example, and browser-specific limitations. The docs include a
+[live playground](https://spatialnode.com/superstac/docs/wasm/playground)
+and a [JavaScript guide](https://spatialnode.com/superstac/docs/wasm/overview).
+
+## Configuration
 ## Save metadata for repeated searches
 
 GeoParquet inventories let you reuse metadata for an area and date range. Search

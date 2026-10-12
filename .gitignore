@@ -75,4 +75,7 @@ ideas/
 .env
 .env.local
 .pnpm-store/
+# Browser binding artifacts
+/crates/wasm/pkg/
+/crates/wasm/node_modules/
 node_modules/

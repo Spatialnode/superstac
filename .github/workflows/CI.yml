@@ -2,7 +2,7 @@ name: Package checks
 
 on:
   pull_request:
-    paths: ['crates/**', 'Cargo.toml', 'Cargo.lock', 'scripts/**', '.github/workflows/CI.yml', '.github/workflows/publish.yml']
+    paths: ['crates/**', '!crates/wasm/**', 'Cargo.toml', 'Cargo.lock', 'scripts/**', '.github/workflows/CI.yml', '.github/workflows/publish.yml']
   workflow_dispatch:
   workflow_call:
 
@@ -25,6 +25,11 @@ jobs:
       - run: cargo test --workspace --exclude superstac-python --locked
       - run: cargo test -p superstac-cli -p superstac-engine --features geoparquet --locked
       - run: cargo check -p superstac-python --no-default-features --locked
+
+  wasm:
+    # Pull requests run the standalone WASM workflow, including WASM-only changes.
+    if: github.event_name != 'pull_request'
+    uses: ./.github/workflows/wasm.yml
 
   wheels:
     name: Wheel (${{ matrix.target }})

@@ -1,0 +1,291 @@
+---
+title: Use SuperSTAC in the browser
+description: Search STAC catalogs from JavaScript or TypeScript with the WebAssembly binding.
+---
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+Search STAC APIs from your browser app and get scene records with their source catalogs. Use the same client from JavaScript or TypeScript.
+
+[Try the playground](/docs/v0.3/wasm/playground) to see it without installing anything.
+
+## Install
+
+You do not need Rust to use SuperSTAC in a browser app. The browser package includes the compiled WebAssembly module and TypeScript declarations.
+
+Install with your preferred package manager:
+
+<Tabs items={["npm", "pnpm", "Yarn", "Bun"]}>
+<Tab value="npm">
+
+```bash
+npm install @spatialnode/superstac-wasm
+```
+
+</Tab>
+<Tab value="pnpm">
+
+```bash
+pnpm add @spatialnode/superstac-wasm
+```
+
+</Tab>
+<Tab value="Yarn">
+
+```bash
+yarn add @spatialnode/superstac-wasm
+```
+
+</Tab>
+<Tab value="Bun">
+
+```bash
+bun add @spatialnode/superstac-wasm
+```
+
+</Tab>
+</Tabs>
+
+
+## Search two catalogs
+
+Put this in your app’s browser code. For frameworks with server rendering, initialize the client on the browser side. Your bundler must serve the package’s `.wasm` file alongside its JavaScript module.
+
+```js
+import init, { SuperSTAC } from '@spatialnode/superstac-wasm';
+
+await init();
+const client = new SuperSTAC({
+  catalogs: [
+    { id: 'earth-search', url: 'https://earth-search.aws.element84.com/v1' },
+    { id: 'microsoft', url: 'https://planetarycomputer.microsoft.com/api/stac/v1' },
+  ],
+});
+
+try {
+  const result = await client.search({
+    collections: ['sentinel-2-l2a'],
+    bbox: [6, 45, 7, 46], // West, south, east, north, in degrees.
+    datetime: '2024-06-01T00:00:00Z/2024-06-30T23:59:59Z',
+    limit: 5,
+  });
+
+  for (const { item, seen_in } of result.items) {
+    console.log(item.id, seen_in);
+  }
+  console.log(result.metadata.failures);
+} finally {
+  client.free(); // After all pending calls have finished.
+}
+```
+
+Initialization loads the WASM module once. `search()` returns a Promise. `limit` is per catalog, defaults to 10, and is capped at 1,000 by default. Omit `collections` to search without a collection filter. Other query fields are `ids`, `intersects`, and `sortby`; use either `bbox` or `intersects`, not both.
+
+## Understand the response
+
+`result.items` contains entries with:
+
+- `item`: the STAC Feature, including properties, assets, and links.
+- `catalog_id`: the catalog whose copy was kept.
+- `seen_in`: all catalogs that returned that item ID.
+
+`result.metadata` includes counts, duplicate records removed, and per-catalog failures. A request can resolve successfully even if every catalog failed, so check `metadata.failures` as well as `items`.
+
+Duplicate detection uses the item ID. Two records of the same acquisition with different IDs are not automatically combined. The merged results are not globally sorted.
+
+Inside the `try` block above, turn the returned items into a GeoJSON FeatureCollection:
+
+```js
+const geojson = {
+  type: 'FeatureCollection',
+  features: result.items.map(({ item }) => item),
+};
+```
+
+## Discover collections
+
+```js
+import init, { SuperSTAC } from '@spatialnode/superstac-wasm';
+
+await init();
+const client = new SuperSTAC({
+  catalogs: [{
+    id: 'earth-search',
+    url: 'https://earth-search.aws.element84.com/v1',
+  }],
+});
+try {
+  for (const catalog of await client.listCollections()) {
+    if (catalog.error) console.warn(catalog.catalog_id, catalog.error);
+    for (const entry of catalog.collections) {
+      console.log(entry.canonical_id, entry.collection.title);
+    }
+  }
+} finally {
+  client.free();
+}
+```
+
+Each collection entry includes its `canonical_id` and original `collection` metadata. Discovery follows pagination, returns up to 10,000 collections per catalog, and reports failures separately. It does not change which catalogs future searches query.
+
+## Configure the client
+
+All settings below are optional. To tune your search, replace the constructor in the first example with this one. The values shown are the defaults:
+
+```js
+const client = new SuperSTAC({
+  catalogs: [
+    { id: 'earth-search', url: 'https://earth-search.aws.element84.com/v1' },
+  ],
+  settings: {
+    deduplicate_items: true,
+    unify_response: true,
+    max_concurrent_catalogs: 8,
+    per_catalog_timeout_seconds: 30,
+    max_retry_attempts: 2,
+    max_items_per_catalog: 1000,
+  },
+});
+```
+
+`max_retry_attempts` includes the first attempt. Timeouts cover one catalog's paginated search attempt. Failed attempts discard their partial results. Background tabs can delay browser timers.
+
+Catalogs can also include `collection_aliases` and `asset_aliases`, using the [same canonical-to-provider mappings](/docs/v0.3/guides/aliases) as the other interfaces.
+
+## Put it on a page
+
+This small Vite app displays results and failures on the page. It runs searches only when you click the button and keeps GeoJSON ready to copy from the output.
+
+Create a folder with a `package.json` containing:
+
+```json title="package.json"
+{
+  "name": "superstac-browser-demo",
+  "private": true,
+  "type": "module",
+  "scripts": { "dev": "vite" }
+}
+```
+
+Install `@spatialnode/superstac-wasm` using the instructions above, then add Vite:
+
+<Tabs items={["npm", "pnpm", "Yarn", "Bun"]}>
+<Tab value="npm">
+
+```bash
+npm install --save-dev vite
+npm run dev
+```
+
+</Tab>
+<Tab value="pnpm">
+
+```bash
+pnpm add --save-dev vite
+pnpm dev
+```
+
+</Tab>
+<Tab value="Yarn">
+
+```bash
+yarn add --dev vite
+yarn dev
+```
+
+</Tab>
+<Tab value="Bun">
+
+```bash
+bun add --dev vite
+bun run dev
+```
+
+</Tab>
+</Tabs>
+
+Create these two files in the project root, then open the local address printed by Vite. Use a Node.js version supported by your installed Vite release.
+
+```html title="index.html"
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>My STAC search</title>
+  </head>
+  <body>
+    <h1>Imagery over the French Alps</h1>
+    <button id="search" type="button">Find scenes</button>
+    <p id="status" role="status">Ready to search.</p>
+    <pre id="results" style="white-space: pre-wrap;"></pre>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>
+```
+
+```js title="main.js"
+import init, { SuperSTAC } from '@spatialnode/superstac-wasm';
+import wasmUrl from '@spatialnode/superstac-wasm/superstac_wasm_bg.wasm?url';
+
+const button = document.querySelector('#search');
+const status = document.querySelector('#status');
+const output = document.querySelector('#results');
+
+button.addEventListener('click', async () => {
+  button.disabled = true;
+  status.textContent = 'Searching…';
+  output.textContent = '';
+  let client;
+  try {
+    await init({ module_or_path: wasmUrl });
+    client = new SuperSTAC({
+      catalogs: [{
+        id: 'earth-search',
+        url: 'https://earth-search.aws.element84.com/v1',
+      }],
+    });
+    const result = await client.search({
+      collections: ['sentinel-2-l2a'],
+      bbox: [6, 45, 7, 46],
+      datetime: '2024-06-01T00:00:00Z/2024-06-30T23:59:59Z',
+      limit: 5,
+    });
+    status.textContent =
+      `${result.items.length} scenes; ${result.metadata.catalogs_failed} catalogs failed.`;
+    output.textContent = JSON.stringify({
+      geojson: {
+        type: 'FeatureCollection',
+        features: result.items.map(({ item }) => item),
+      },
+      failures: result.metadata.failures,
+    }, null, 2);
+  } catch (error) {
+    status.textContent = `Search failed: ${error.message ?? error}`;
+  } finally {
+    client?.free();
+    button.disabled = false;
+  }
+});
+```
+
+Vite’s `?url` import gives the WASM binary a served URL. Other bundlers may handle binary assets differently. If `init()` fails, check that the `.wasm` request returns the binary rather than an HTML fallback page. In a server-rendered framework, run this code only in the browser.
+
+For TypeScript, include `DOM`, your usual ECMAScript libraries, and `ESNext.Disposable` in `tsconfig.json`. The package supplies its own API types. Vite projects also need `vite/client` types for `?url` imports.
+
+## Request identification and logs
+
+The browser binding uses the browser’s User-Agent. It does not append a SuperSTAC
+identifier or install a Rust tracing subscriber. Catalog errors are available in
+`metadata.failures`; complete browser requests can be inspected in Developer Tools.
+The [playground](/docs/v0.3/wasm/playground) adds its own activity panel with request
+response times, HTTP outcomes, and total operation time, without changing request
+headers. This instrumentation belongs to the playground, not the npm binding API.
+
+## Browser requirements
+
+Catalogs must allow browser requests through CORS. WASM cannot bypass that restriction; an application may need a server-side proxy for a catalog that disallows it. The first search uses POST `/search`; pagination supports GET and POST next links.
+
+The browser binding uses in-memory configuration. It does not include filesystem YAML loading, GeoParquet, background health monitors, asset signing, or capability-based catalog selection. Node.js and WASI are not validated targets.
+
+For TypeScript, include `ESNext.Disposable` alongside your usual libraries because the generated bindings expose `Symbol.dispose`. Calling `client.free()` explicitly works too.

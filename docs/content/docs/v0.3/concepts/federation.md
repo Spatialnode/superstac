@@ -18,11 +18,15 @@ Federation means searching several catalogs through one client. In live mode, Su
 
 ## From request to response
 
+The Python, Rust, and CLI live-search path follows these steps:
+
 1. **Start and inspect.** The engine checks catalog health and discovers `/collections` on healthy catalogs.
 2. **Choose sources.** It normally excludes unhealthy catalogs and catalogs known not to serve any requested collection. If collection discovery failed, the unknown catalog can still be queried.
 3. **Translate names.** Each catalog's collection aliases translate your canonical query into local names.
 4. **Search in parallel.** SuperSTAC limits how many catalogs it queries at once, retries failed requests, and reads result pages up to the limit for each catalog.
 5. **Combine the results.** SuperSTAC can rename collections and assets using your aliases and remove duplicate item IDs. The response also lists any catalog failures.
+
+The browser binding sends searches directly to the catalogs you configure. It supports aliases, pagination, retries, and deduplication, but does not run background health checks or choose catalogs from discovered capabilities.
 
 An empty `collections` list removes the collection filter; it does not select a default dataset.
 

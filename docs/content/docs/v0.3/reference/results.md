@@ -3,7 +3,7 @@ title: Results and provenance
 description: Read search results, check failed catalogs, and understand how duplicate items are handled.
 ---
 
-## Rust and CLI response
+## JavaScript, Rust, and CLI response
 
 A response contains items and metadata about the search. This example shortens the STAC item to show the surrounding fields:
 
@@ -34,6 +34,7 @@ A response contains items and metadata about the search. This example shortens t
 
 | Field | Meaning |
 | --- | --- |
+| `superstac_version` | Version of the engine that produced the response. |
 | `catalogs_queried` | Number selected for execution, after health/source filtering. |
 | `catalogs_succeeded` | Selected catalogs that completed successfully. |
 | `catalogs_failed` | Selected catalogs that failed. |
@@ -42,7 +43,7 @@ A response contains items and metadata about the search. This example shortens t
 | `failures` | List of `{catalog_id, reason}` for failed searches. |
 | `unsupported_collections` | Requested canonical IDs that no candidate catalog was known to serve, reported conservatively when collection knowledge is complete. |
 
-A catalog skipped because it is unhealthy or does not offer the requested collection may be absent from `failures`. If a source is missing, compare the metadata with the catalogs you registered.
+In the native engine, a catalog skipped because it is unhealthy or does not offer the requested collection may be absent from `failures`. If a source is missing, compare the metadata with the catalogs you registered.
 
 ## Python representation
 

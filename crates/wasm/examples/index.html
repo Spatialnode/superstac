@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SuperSTAC browser search</title>
+<style>
+  body { font: 16px system-ui; max-width: 850px; margin: 3rem auto; padding: 0 1rem; }
+  button { font: inherit; padding: .6rem 1rem; }
+  pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #f3f5f7; padding: 1rem; }
+</style>
+<h1>SuperSTAC browser search</h1>
+<p>Search Sentinel-2 scenes over western Europe in January 2024 using Earth Search.</p>
+<button id="search" disabled>Loading…</button>
+<pre id="output" role="status">Loading WebAssembly…</pre>
+<script type="module">
+  import init, { SuperSTAC } from '../pkg/superstac_wasm.js';
+  const button = document.querySelector('#search');
+  const output = document.querySelector('#output');
+  try {
+    await init();
+    const client = new SuperSTAC({ catalogs: [
+      { id: 'earth-search', url: 'https://earth-search.aws.element84.com/v1' }
+    ] });
+    button.disabled = false;
+    button.textContent = 'Search scenes';
+    output.textContent = 'Ready';
+    button.onclick = async () => {
+      button.disabled = true;
+      output.textContent = 'Searching…';
+      try {
+        const result = await client.search({ collections: ['sentinel-2-l2a'], bbox: [6, 49, 7, 50],
+          datetime: '2024-01-01T00:00:00Z/2024-01-31T23:59:59Z', limit: 5 });
+        output.textContent = JSON.stringify(result, null, 2);
+      } catch (error) { output.textContent = error.message; }
+      finally { button.disabled = false; }
+    };
+  } catch (error) { output.textContent = error.message; }
+</script>
+</html>

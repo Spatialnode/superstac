@@ -36,6 +36,7 @@ In a notebook that already has an event loop, use `await main()` instead of `asy
 | `AsyncClient.from_yaml(path)` | Synchronous construction and file loading. |
 | `AsyncClient.open(url)` | Await; registers and starts a single-catalog client. |
 | `start()`, `shutdown()`, `search(...)` | Await. |
+| `ingest(...)`, `compact_dataset(...)`, `cleanup_dataset(...)` | Await; see [inventories](/docs/v0.3/guides/geoparquet). |
 | `list_collections()`, `get_collections()`, `get_collection(id)` | Await. |
 | `catalogs_supporting(id)`, `collections_by_catalog()`, `describe_collection(catalog_id, collection_id)` | Await. |
 | Adding, reading, updating, or deleting catalogs/providers; settings methods | Synchronous; access local memory. |

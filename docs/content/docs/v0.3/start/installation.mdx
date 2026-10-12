@@ -1,0 +1,143 @@
+---
+title: Installation
+description: Install SuperSTAC with your preferred package manager, then run a search.
+---
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+Choose the interface you want to use. You only need to install one.
+
+| If you work in… | Start here |
+| --- | --- |
+| A notebook or Python script | [Python](#python) |
+| A browser app | [JavaScript / TypeScript](#javascript--typescript) |
+| A Rust application | [Rust](#rust) |
+| A terminal | [Command line](#command-line) |
+
+Just exploring? [Try the playground](/docs/v0.3/wasm/playground) without installing anything.
+
+## Python
+
+Use Python 3.9 or newer. Choose your package manager:
+
+<Tabs items={["pip", "uv", "Poetry", "Conda", "Jupyter / Colab"]}>
+<Tab value="pip">
+
+```bash
+pip install superstac
+```
+
+</Tab>
+<Tab value="uv">
+
+```bash
+uv add superstac
+```
+
+</Tab>
+<Tab value="Poetry">
+
+```bash
+poetry add superstac
+```
+
+</Tab>
+<Tab value="Conda">
+
+In your active Conda environment:
+
+```bash
+pip install superstac
+```
+
+</Tab>
+<Tab value="Jupyter / Colab">
+
+```text
+%pip install superstac
+```
+
+</Tab>
+</Tabs>
+
+Then [run your first search](/docs/v0.3/start/quickstart) or [open the notebook](/docs/v0.3/python/notebook).
+
+<details>
+<summary>No compatible wheel? Build from source</summary>
+
+This path requires Rust 1.88 or newer and Python development tools.
+
+```bash
+git clone https://github.com/spatialnode/superstac
+cd superstac
+git checkout v0.3.0
+cd crates/python
+python -m venv .venv
+```
+
+Activate with `source .venv/bin/activate` on macOS/Linux or `.venv\Scripts\Activate.ps1` in Windows PowerShell, then:
+
+```bash
+python -m pip install maturin
+maturin develop --release
+```
+
+</details>
+
+## JavaScript / TypeScript
+
+The browser package contains compiled WebAssembly and TypeScript declarations. You do not need Rust to use it.
+
+```bash
+npm install @spatialnode/superstac-wasm
+```
+
+The [browser guide](/docs/v0.3/wasm/overview#install) includes pnpm, Yarn, and Bun commands and a complete search example.
+
+## Rust
+
+Use Rust 1.88 or newer. In your application directory:
+
+```bash
+cargo add superstac-core@0.3 superstac-config@0.3
+cargo add superstac-search@0.3 superstac-engine@0.3
+cargo add tokio --features macros,rt-multi-thread
+```
+
+For saved GeoParquet inventories, also enable:
+
+```bash
+cargo add superstac-engine@0.3 --features geoparquet
+```
+
+Follow the [complete Rust example](/docs/v0.3/rust/overview) to create a project, load catalogs, and run a search.
+
+## Command line
+
+The CLI currently installs from source and requires Rust 1.88 or newer:
+
+```bash
+git clone https://github.com/spatialnode/superstac
+cd superstac
+git checkout v0.3.0
+cargo install --path crates/cli --features geoparquet
+superstac --version
+```
+
+This includes inventory commands such as `ingest` and `compact`. Omit `--features geoparquet` if you only need live catalog searches.
+
+Save the [sample configuration](/superstac/versions/v0.3/examples/superstac.yml) as `superstac.yml` in your working directory, then follow the [CLI quickstart](/docs/v0.3/start/quickstart).
+
+<details>
+<summary>Build the CLI without installing it</summary>
+
+From the repository root:
+
+```bash
+cargo build --release -p superstac-cli --features geoparquet
+./target/release/superstac --help
+```
+
+On Windows, run `target\release\superstac.exe --help`.
+
+</details>

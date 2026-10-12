@@ -241,3 +241,7 @@ button { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   .inventory-transfer span:first-child { opacity: 1; top: 17px; }
 }
+
+/* Four interface guides, with room for their descriptions. */
+.interface-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 700px) { .interface-cards { grid-template-columns: 1fr; } }
